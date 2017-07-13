@@ -81,7 +81,7 @@ def __sprokit_register__():
     if process_factory.is_process_module_loaded(module_name):
         return
 
-    process_factory.register_add('kw_write_homography',
+    process_factory.add_process('kw_write_homography',
                                  'A Simple Kwiver homography writer',
                                  HomographyWriterProcess)
 

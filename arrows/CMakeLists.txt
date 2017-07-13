@@ -53,3 +53,7 @@ endif()
 if( KWIVER_ENABLE_UUID )
   add_subdirectory( uuid )
 endif()
+
+if ( KWIVER_ENABLE_PYTHON )
+    add_subdirectory( hello_world )
+endif()
