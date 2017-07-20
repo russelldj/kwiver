@@ -31,30 +31,19 @@ from __future__ import print_function
 from __future__ import division
 from __future__ import absolute_import
 
-import os
-import cv2
 import torch
+from torchvision import models, transforms
+from torch.autograd import Variable
+from torch import nn
 import numpy as np
-from torch.multiprocessing import Pool
 
 from PIL import Image as pilImage
-
-from darknet import Darknet19
-from torch.autograd import Variable
-from torchvision import transforms
-import utils.yolo as yolo_utils
-import utils.network as net_utils
-import cfgs.config as cfg
 
 from sprokit.pipeline import process
 from kwiver.kwiver_process import KwiverProcess
 from vital.types import Image
-from vital.types import ImageContainer
-from vital.types import DetectedObject
-from vital.types import DetectedObjectSet
-from vital.types import BoundingBox
 
-class pytorch_detector(KwiverProcess):
+class pytorch_siamese_f_extractor(KwiverProcess):
     """
     This process gets an image as input, does some stuff to it and
     sends the modified version to the output port.
@@ -63,16 +52,13 @@ class pytorch_detector(KwiverProcess):
     def __init__(self, conf):
         KwiverProcess.__init__(self, conf)
 
-        self.add_config_trait("model_path", "model_path", './yolo-voc.weights.h5',
+        self.add_config_trait("model_path", "model_path", '/home/bdong/HiDive_project/tracking_the_untrackable/snapshot/siamese/snapshot_epoch_6.pt',
           'Trained PyTorch model.')
-        self.add_config_trait("model_input_size", "model_input_size", '416',
+        self.add_config_trait("model_input_size", "model_input_size", '224',
           'Model input image size' )
-        self.add_config_trait("threshold", "threshold", '0.5',
-          'Detection threshold')
 
         self.declare_config_using_trait('model_path')
         self.declare_config_using_trait('model_input_size')
-        self.declare_config_using_trait('threshold')
 
         #self.add_port_trait('detections', 'detected_object_set', 'Output detections')
 
@@ -83,19 +69,21 @@ class pytorch_detector(KwiverProcess):
 
         #  declare our input port ( port-name,flags)
         self.declare_input_port_using_trait('image', required)
-        self.declare_output_port_using_trait('detected_object_set', optional)
+        self.declare_output_port_using_trait('feature_set', optional)
 
     # ----------------------------------------------
     def _configure(self):
         self._img_size = int(self.config_value('model_input_size'))
         self._model_path = self.config_value('model_path')
-        self._thr = float(self.config_value('threshold'))
         
-        self._net = Darknet19
-        net_utils.load_net(self._model_path, self._net)
-        self._net.cuda()
-        self._net.eval()
-        print('load model succ...')
+        self._model = Siamese()
+        self._model = torch.nn.DataParallel(self._model).cuda()
+
+        snapshot = torch.load(self._model_path)
+        self._model.load_state_dict(snapshot['state_dict'])
+        print('Model loaded from {}'.format(self._model_path))
+        self._model.train(False)
+        
 
         self._base_configure()
 
@@ -108,28 +96,53 @@ class pytorch_detector(KwiverProcess):
         in_img = in_img_c.get_image().get_numpy_array()
         im = pilImage.fromarray(np.uint8(in_img))
         im = im.resize((self._img_size, self._img_size), pilImage.BILINEAR)
-        loader = transforms.Compose([transforms.ToTensor])
         im.convert('RGB')
+
+        loader = transforms.Compose([
+                       transforms.Scale(224),
+                       transforms.ToTensor(),
+                       transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+                   ])
         im = loader(im).float()
-        im = Variable(im, volatile=True).cuda()
-        bbox_pred, iou_pred, prob_pred = self._net(im) 
+        im = Variable(im[None], volatile=True).cuda()
+
+        output, _, _ = self._model(im, im)
+        np_output = output.data.cpu().numpy().squeeze()
+        print(np_output)
 
         # push dummy detections object to output port
-        detections = DetectedObjectSet()
-        self.push_to_port_using_trait('detected_object_set', detections)
+        #detections = DetectedObjectSet()
+        #self.push_to_port_using_trait('detected_object_set', detections)
 
         self._base_step()
 
+
+# Siamese network
+# ==================================================================
+class Siamese(nn.Module):
+    def __init__(self):
+        super(Siamese, self).__init__()
+        self.resnet = models.resnet50(pretrained=True)
+        self.num_fcin = self.resnet.fc.in_features
+        self.resnet.fc = nn.Linear(self.num_fcin, 500)
+        self.pdist = nn.PairwiseDistance(1)
+
+    def forward(self, input1, input2):
+        output1 = self.resnet(input1)
+        output2 = self.resnet(input2)
+        output = self.pdist(output1, output2)
+
+        return output1, output2, output
 
 # ==================================================================
 def __sprokit_register__():
     from sprokit.pipeline import process_factory
 
-    module_name = 'python:kwiver.pytorch_detector'
+    module_name = 'python:kwiver.pytorch_siamese_f_extractor'
 
     if process_factory.is_process_module_loaded( module_name ):
         return
 
-    process_factory.add_process( 'pytorch_detector', 'pytorch detector', pytorch_detector )
+    process_factory.add_process( 'pytorch_siamese_f_extractor', 'pytorch siamese feature extractor', pytorch_siamese_f_extractor )
 
     process_factory.mark_process_module_as_loaded( module_name )
