@@ -104,6 +104,8 @@ class pytorch_siamese_f_extractor(KwiverProcess):
                        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
                    ])
         im = loader(im).float()
+
+        # im[None] is for add banch dimenstion
         im = Variable(im[None], volatile=True).cuda()
 
         output, _, _ = self._model(im, im)

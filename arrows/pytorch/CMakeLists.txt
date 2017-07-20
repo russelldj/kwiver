@@ -6,8 +6,8 @@ set(kwiver_python_output_path "${KWIVER_BINARY_DIR}/lib/${kwiver_python_subdir}"
 
 # TODO: change KWIVER_ENABLE_PYTHON to KWIVER_ENABLE_PYTORCH
 if( KWIVER_ENABLE_PYTHON )
-  kwiver_add_python_module(${CMAKE_CURRENT_SOURCE_DIR}/pytorch_detector.py
+  kwiver_add_python_module(${CMAKE_CURRENT_SOURCE_DIR}/pytorch_siamese_f_extractor.py
     kwiver/processes
-    pytorch_detector)
+    pytorch_siamese_f_extractor)
 
 endif()

@@ -6,8 +6,8 @@ process input
   :image_reader:type   ocv
 
 # =============================================================================
-process detector
-  :: pytorch_detector
+process feature_extractor
+  :: pytorch_siamese_f_extractor
   :model_path               /home/bdong/HiDive_project/tracking_the_untrackable/snapshot/siamese/snapshot_epoch_6.pt
   :model_input_size         224
 
@@ -20,6 +20,6 @@ config _pipeline:_edge
 # =============================================================================
 # connections
 connect from input.image
-        to   detector.image
+        to   feature_extractor.image
 
 # -- end of file --
