@@ -55,5 +55,6 @@ if( KWIVER_ENABLE_UUID )
 endif()
 
 if ( KWIVER_ENABLE_PYTHON )
+    add_subdirectory( pytorch )
     add_subdirectory( hello_world )
 endif()

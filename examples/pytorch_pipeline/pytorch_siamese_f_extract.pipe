@@ -1,0 +1,25 @@
+# =============================================================================
+process input
+  :: frame_list_input
+  :image_list_file     input_list.txt
+  :frame_time          .3333
+  :image_reader:type   ocv
+
+# =============================================================================
+process detector
+  :: pytorch_detector
+  :model_path               /home/bdong/HiDive_project/tracking_the_untrackable/snapshot/siamese/snapshot_epoch_6.pt
+  :model_input_size         224
+
+# =============================================================================
+# global pipeline config
+#
+config _pipeline:_edge
+       :capacity 1
+
+# =============================================================================
+# connections
+connect from input.image
+        to   detector.image
+
+# -- end of file --
