@@ -130,6 +130,7 @@ set( vital_public_headers
   types/detected_object_set.h
   types/feature.h
   types/feature_set.h
+  types/feature_track_set.h
   types/fundamental_matrix.h
   types/geo_MGRS.h
   types/geo_UTM.h
@@ -137,6 +138,7 @@ set( vital_public_headers
   types/geo_lat_lon.h
   types/geo_point.h
   types/geo_polygon.h
+  types/geodesy.h
   types/homography.h
   types/homography_f2f.h
   types/homography_f2w.h
@@ -147,6 +149,7 @@ set( vital_public_headers
   types/match_set.h
   types/matrix.h
   types/mesh.h
+  types/object_track_set.h
   types/polygon.h
   types/query_plan.h
   types/rotation.h
@@ -191,6 +194,7 @@ set( vital_sources
   types/detected_object_type.cxx
   types/essential_matrix.cxx
   types/feature.cxx
+  types/feature_track_set.cxx
   types/fundamental_matrix.cxx
   types/geo_MGRS.cxx
   types/geo_UTM.cxx
@@ -198,12 +202,14 @@ set( vital_sources
   types/geo_lat_lon.cxx
   types/geo_point.cxx
   types/geo_polygon.cxx
+  types/geodesy.cxx
   types/homography.cxx
   types/homography_f2f.cxx
   types/homography_f2w.cxx
   types/image.cxx
   types/landmark.cxx
   types/mesh.cxx
+  types/object_track_set.cxx
   types/polygon.cxx
   types/query_plan.cxx
   types/rotation.cxx
