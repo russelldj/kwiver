@@ -42,6 +42,8 @@ from PIL import Image as pilImage
 from sprokit.pipeline import process
 from kwiver.kwiver_process import KwiverProcess
 from vital.types import Image
+from vital.types import DetectedObject
+from vital.types import DetectedObjectSet
 
 class pytorch_siamese_f_extractor(KwiverProcess):
     """
@@ -67,8 +69,11 @@ class pytorch_siamese_f_extractor(KwiverProcess):
         required = process.PortFlags()
         required.add(self.flag_required)
 
-        #  declare our input port ( port-name,flags)
+        #  input port ( port-name,flags)
         self.declare_input_port_using_trait('image', required)
+        self.declare_input_port_using_trait('detected_object_set', optional)
+
+        #  output port ( port-name,flags)
         self.declare_output_port_using_trait('feature_set', optional)
 
     # ----------------------------------------------
@@ -91,10 +96,15 @@ class pytorch_siamese_f_extractor(KwiverProcess):
     def _step(self):
         # grab image container from port using traits
         in_img_c = self.grab_input_using_trait('image')
+        dos_ptr = self.grab_input_using_trait('detected_object_set')
+        #dos = d_obj_set.select(0.8)
+        #print(dos)
 
         # Get image and resize
-        in_img = in_img_c.get_image().get_numpy_array()
-        im = pilImage.fromarray(np.uint8(in_img))
+        im = in_img_c.get_image().get_pil_image()
+
+        #in_img = in_img_c.get_image().get_numpy_array()
+        #im = pilImage.fromarray(np.uint8(in_img))
         im = im.resize((self._img_size, self._img_size), pilImage.BILINEAR)
         im.convert('RGB')
 
