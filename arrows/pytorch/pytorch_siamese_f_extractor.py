@@ -97,7 +97,12 @@ class pytorch_siamese_f_extractor(KwiverProcess):
         # grab image container from port using traits
         in_img_c = self.grab_input_using_trait('image')
         dos_ptr = self.grab_input_using_trait('detected_object_set')
-        #dos = d_obj_set.select(0.8)
+        dos = dos_ptr.select(0.0)
+        print('bbox list len is {}'.format(len(dos)))
+        for item in dos:
+            item_box = item.bounding_box()
+            #print('box min_x {}--box max_x {}'.format(item_box.min_x(),item_box.max_x()))
+            
         #print(dos)
 
         # Get image and resize
@@ -120,7 +125,7 @@ class pytorch_siamese_f_extractor(KwiverProcess):
 
         output, _, _ = self._model(im, im)
         np_output = output.data.cpu().numpy().squeeze()
-        print(np_output)
+        #print(np_output)
 
         # push dummy detections object to output port
         #detections = DetectedObjectSet()
