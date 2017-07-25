@@ -38,50 +38,23 @@ import ctypes
 from vital.util import VitalObject, free_void_ptr
 
 
-class TrackStateData (VitalObject):
-    """
-    vital::track::track_state_data interface class
-    
-    Note this is an empty base class, all the work done with
-    interfacing is done in derived versions of this class.
-    """
-
-    def __init__(self, from_cptr=None):
-        """
-        Initialize new track state data
-        """
-        super(TrackStateData, self).__init__(from_cptr)
-
-
 class TrackState (VitalObject):
     """
-    vital::track::track_state interface class
+    vital::track_state interface class
     """
 
-    def __init__(self, frame=0, data=None, from_cptr=None):
-        """
-        Initialize new track state
-
-        :param frame: Frame the track state intersects
-        :type frame: int
-
-        :param data: Optional data instance associated with this state.
-        :type data: vital.types.TrackStateData
-        """
-        super(TrackState, self).__init__(from_cptr, frame, data)
-
-    def _new(self, frame, data):
+    def _new(self, frame):
         """
         :param frame: Frame the track state intersects
         :type frame: int
 
         :param data: Optional Data instance associated with this state.
-        :type TrackStateData: vital.types.TrackStateData
+        :type TrackState: vital.types.TrackState
         """
         return self._call_cfunc(
             "vital_track_state_new",
-            [ctypes.c_int64, TrackStateData.c_ptr_type()],
-            [frame, data],
+            [ctypes.c_int64],
+            [frame],
             self.C_TYPE_PTR
         )
 
@@ -100,6 +73,9 @@ class TrackState (VitalObject):
             [self],
             ctypes.c_int64
         )
+
+    def as_track_state_ptr_type(self):
+        return TrackState.c_ptr_type()(self.c_pointer.contents)
 
 
 class Track (VitalObject):
@@ -283,7 +259,7 @@ class Track (VitalObject):
         return self._call_cfunc(
             'vital_track_append_state',
             [Track.c_ptr_type(), TrackState.c_ptr_type()],
-            [self, ts],
+            [self, ts.as_track_state_ptr_type()],
             ctypes.c_bool
         )
 
