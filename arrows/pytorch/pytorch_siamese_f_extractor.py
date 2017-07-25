@@ -97,19 +97,21 @@ class pytorch_siamese_f_extractor(KwiverProcess):
         # grab image container from port using traits
         in_img_c = self.grab_input_using_trait('image')
         dos_ptr = self.grab_input_using_trait('detected_object_set')
-        dos = dos_ptr.select(0.0)
-        print('bbox list len is {}'.format(len(dos)))
-        for item in dos:
-            item_box = item.bounding_box()
-            #print('box min_x {}--box max_x {}'.format(item_box.min_x(),item_box.max_x()))
-            
-        #print(dos)
 
         # Get image and resize
         im = in_img_c.get_image().get_pil_image()
 
-        #in_img = in_img_c.get_image().get_numpy_array()
-        #im = pilImage.fromarray(np.uint8(in_img))
+        # Get detection bbox
+        dos = dos_ptr.select(0.5)
+        print('bbox list len is {}'.format(len(dos)))
+        for item in dos:
+            item_box = item.bounding_box()
+
+            im = im.crop((float(item_box.min_x()), float(item_box.min_y()), 
+                          float(item_box.max_x()), float(item_box.max_y())))
+            im.show()
+
+        # resize cropped image
         im = im.resize((self._img_size, self._img_size), pilImage.BILINEAR)
         im.convert('RGB')
 
