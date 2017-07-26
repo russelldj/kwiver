@@ -184,7 +184,3 @@ class BoundingBox (VitalObject):
         bb_area.restype = ctypes.c_double
         return bb_area(self)
 
-    def get_center(self):
-        c_x = min_x() + width() / 2.0
-        c_y = min_y() + height() / 2.0
-        return c_x, c_y

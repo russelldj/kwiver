@@ -1,8 +1,8 @@
 import cv2
 import numpy as np
 
-def generateGrid_from_gt_file(img, grid_rows=15, grid_cols=15):
-    r"""MOT gt file in order to generate grid
+def generateGrid(img, grid_rows=15, grid_cols=15):
+    r"""
             The output of the function is a dictionary (frame_num: 2D list) with following format
             [frame_num : [[grid_11, grid_12, ... , grid_1n], [grid_21, grid_22, ..., grid_2n,] ... grid_nn]]
             grid_mn = 1: one or more bboxs' center fall in the cell(mn)
@@ -53,11 +53,11 @@ def generateGrid_from_gt_file(img, grid_rows=15, grid_cols=15):
 def __sprokit_register__():
     from sprokit.pipeline import process_factory
 
-    module_name = 'python:kwiver.grid'
+    module_name = 'python:kwiver.generateGrid'
 
     if process_factory.is_process_module_loaded( module_name ):
         return
 
-    process_factory.add_process( 'grid', 'grid', grid )
+    process_factory.add_process( 'generateGrid', 'generateGrid', grid )
 
     process_factory.mark_process_module_as_loaded( module_name )
