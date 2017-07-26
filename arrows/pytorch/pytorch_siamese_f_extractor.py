@@ -44,6 +44,7 @@ from kwiver.kwiver_process import KwiverProcess
 from vital.types import Image
 from vital.types import DetectedObject
 from vital.types import DetectedObjectSet
+#from .grid import Grid
 
 class pytorch_siamese_f_extractor(KwiverProcess):
     """
