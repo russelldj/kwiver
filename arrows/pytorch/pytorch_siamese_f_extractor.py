@@ -44,7 +44,7 @@ from kwiver.kwiver_process import KwiverProcess
 from vital.types import Image
 from vital.types import DetectedObject
 from vital.types import DetectedObjectSet
-#from .grid import Grid
+from .grid import Grid
 
 class pytorch_siamese_f_extractor(KwiverProcess):
     """
@@ -89,7 +89,13 @@ class pytorch_siamese_f_extractor(KwiverProcess):
         self._model.load_state_dict(snapshot['state_dict'])
         print('Model loaded from {}'.format(self._model_path))
         self._model.train(False)
-        
+        self._gird = Grid() 
+
+        self._loader = transforms.Compose([
+                       transforms.Scale(224),
+                       transforms.ToTensor(),
+                       transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+                   ])
 
         self._base_configure()
 
@@ -101,10 +107,14 @@ class pytorch_siamese_f_extractor(KwiverProcess):
 
         # Get image and resize
         im = in_img_c.get_image().get_pil_image()
+        self._grid.img_w, self._gird.img_h = im.size
 
         # Get detection bbox
         dos = dos_ptr.select(0.5)
         print('bbox list len is {}'.format(len(dos)))
+        
+        grid_feature_list = self._grid(dos)
+
         for item in dos:
             item_box = item.bounding_box()
 
@@ -112,23 +122,17 @@ class pytorch_siamese_f_extractor(KwiverProcess):
                           float(item_box.max_x()), float(item_box.max_y())))
             im.show()
 
-        # resize cropped image
-        im = im.resize((self._img_size, self._img_size), pilImage.BILINEAR)
-        im.convert('RGB')
+            # resize cropped image
+            im = im.resize((self._img_size, self._img_size), pilImage.BILINEAR)
+            im.convert('RGB')
 
-        loader = transforms.Compose([
-                       transforms.Scale(224),
-                       transforms.ToTensor(),
-                       transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-                   ])
-        im = loader(im).float()
+            im = self._loader(im).float()
 
-        # im[None] is for add banch dimenstion
-        im = Variable(im[None], volatile=True).cuda()
+            # im[None] is for add banch dimenstion
+            im = Variable(im[None], volatile=True).cuda()
 
-        output, _, _ = self._model(im, im)
-        np_output = output.data.cpu().numpy().squeeze()
-        #print(np_output)
+            output, _, _ = self._model(im, im)
+            app_feature = output.data.cpu().numpy().squeeze()
 
         # push dummy detections object to output port
         #detections = DetectedObjectSet()
