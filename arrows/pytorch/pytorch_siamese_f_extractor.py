@@ -44,7 +44,7 @@ from kwiver.kwiver_process import KwiverProcess
 from vital.types import Image
 from vital.types import DetectedObject
 from vital.types import DetectedObjectSet
-from .grid import Grid
+from kwiver.pytorch.grid import grid
 
 class pytorch_siamese_f_extractor(KwiverProcess):
     """
@@ -55,13 +55,16 @@ class pytorch_siamese_f_extractor(KwiverProcess):
     def __init__(self, conf):
         KwiverProcess.__init__(self, conf)
 
-        self.add_config_trait("model_path", "model_path", '/home/bdong/HiDive_project/tracking_the_untrackable/snapshot/siamese/snapshot_epoch_6.pt',
+        self.add_config_trait("siamese_model_path", "siamese_model_path", '/home/bdong/HiDive_project/tracking_the_untrackable/snapshot/siamese/snapshot_epoch_6.pt',
           'Trained PyTorch model.')
-        self.add_config_trait("model_input_size", "model_input_size", '224',
+        self.add_config_trait("siamese_model_input_size", "siamese_model_input_size", '224',
           'Model input image size' )
+        self.add_config_trait("detection_select_threshold", "detection_select_threshold", '0.0',
+          'detection select threshold' )
 
-        self.declare_config_using_trait('model_path')
-        self.declare_config_using_trait('model_input_size')
+        self.declare_config_using_trait('siamese_model_path')
+        self.declare_config_using_trait('siamese_model_input_size')
+        self.declare_config_using_trait('detection_select_threshold')
 
         #self.add_port_trait('detections', 'detected_object_set', 'Output detections')
 
@@ -79,8 +82,9 @@ class pytorch_siamese_f_extractor(KwiverProcess):
 
     # ----------------------------------------------
     def _configure(self):
-        self._img_size = int(self.config_value('model_input_size'))
-        self._model_path = self.config_value('model_path')
+        self._img_size = int(self.config_value('siamese_model_input_size'))
+        self._model_path = self.config_value('siamese_model_path')
+        self._select_threshold = float(self.config_value('detection_select_threshold'))
         
         self._model = Siamese()
         self._model = torch.nn.DataParallel(self._model).cuda()
@@ -89,7 +93,7 @@ class pytorch_siamese_f_extractor(KwiverProcess):
         self._model.load_state_dict(snapshot['state_dict'])
         print('Model loaded from {}'.format(self._model_path))
         self._model.train(False)
-        self._gird = Grid() 
+        self._grid = grid() 
 
         self._loader = transforms.Compose([
                        transforms.Scale(224),
@@ -107,16 +111,20 @@ class pytorch_siamese_f_extractor(KwiverProcess):
 
         # Get image and resize
         im = in_img_c.get_image().get_pil_image()
-        self._grid.img_w, self._gird.img_h = im.size
 
         # Get detection bbox
-        dos = dos_ptr.select(0.5)
+        dos = dos_ptr.select(self._select_threshold)
         print('bbox list len is {}'.format(len(dos)))
         
-        grid_feature_list = self._grid(dos)
-
+        # interaction features
+        grid_feature_list = self._grid(im.size, dos)
+        print(grid_feature_list) 
+        
         for item in dos:
             item_box = item.bounding_box()
+
+            # center of bbox
+            center = tuple((item_box.center()))
 
             im = im.crop((float(item_box.min_x()), float(item_box.min_y()), 
                           float(item_box.max_x()), float(item_box.max_y())))
@@ -132,6 +140,8 @@ class pytorch_siamese_f_extractor(KwiverProcess):
             im = Variable(im[None], volatile=True).cuda()
 
             output, _, _ = self._model(im, im)
+
+            # appearance features
             app_feature = output.data.cpu().numpy().squeeze()
 
         # push dummy detections object to output port

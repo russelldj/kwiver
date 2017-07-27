@@ -1,15 +1,15 @@
 import numpy as np
 
 
-class Grid:
+class grid(object):
     def __init__(self, grid_row=15, grid_cols=15, target_neighborhood_w=7):
         self._grid_rows = grid_row
         self._grid_cols = grid_cols
         self._target_neighborhood_w = target_neighborhood_w
         self._half_cell_w = int(self._target_neighborhood_w // 2)
 
-    def __call__(self, bbox_list):
-        return self.obtainGridFeatureList(bbox_list)
+    def __call__(self, im_size ,bbox_list):
+        return self.obtainGridFeatureList(im_size, bbox_list)
 
     @property
     def img_h(self):
@@ -26,11 +26,13 @@ class Grid:
     @img_w.setter
     def img_w(self, val):
         self._img_w = val
-
-    def obtainGridFeatureList(self, bbox_list):
+    
+    # for python 2, it seems it cannot read the setter
+    def obtainGridFeatureList(self, im_size, bbox_list):
         r"""
             The output of the function is a grid feature list for each corresponding bbox of current frame/image
         """
+        self._img_w, self._img_h = im_size
 
         # calculate grid cell height and width
         cell_h = self._img_h / self._grid_rows
@@ -79,10 +81,4 @@ class Grid:
             grid_feature_list.append(neighborhood_grid.flatten())
 
         return grid_feature_list
-
-if __name__ = '__main__':
-    g = Grid()
-    g.img_h = 250
-    g.img_w = 260
-    g()
 
