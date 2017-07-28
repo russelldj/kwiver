@@ -20,5 +20,12 @@ if( KWIVER_ENABLE_PYTHON )
     kwiver/arrows/pytorch
     track)
   
+  kwiver_add_python_module(${CMAKE_CURRENT_SOURCE_DIR}/models.py
+    kwiver/arrows/pytorch
+    models)
+
+  kwiver_add_python_module(${CMAKE_CURRENT_SOURCE_DIR}/SRNN_matching.py
+    kwiver/arrows/pytorch
+	SRNN_matching)
 
 endif()

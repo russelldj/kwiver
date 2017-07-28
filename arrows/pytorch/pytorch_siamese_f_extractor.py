@@ -44,8 +44,11 @@ from kwiver.kwiver_process import KwiverProcess
 from vital.types import Image
 from vital.types import DetectedObject
 from vital.types import DetectedObjectSet
+
+from kwiver.arrows.pytorch.models import Siamese
 from kwiver.arrows.pytorch.grid import grid
 from kwiver.arrows.pytorch.track import track_state, track
+
 
 class pytorch_siamese_f_extractor(KwiverProcess):
     """
@@ -158,22 +161,6 @@ class pytorch_siamese_f_extractor(KwiverProcess):
         self._base_step()
 
 
-# Siamese network
-# ==================================================================
-class Siamese(nn.Module):
-    def __init__(self):
-        super(Siamese, self).__init__()
-        self.resnet = models.resnet50(pretrained=True)
-        self.num_fcin = self.resnet.fc.in_features
-        self.resnet.fc = nn.Linear(self.num_fcin, 500)
-        self.pdist = nn.PairwiseDistance(1)
-
-    def forward(self, input1, input2):
-        output1 = self.resnet(input1)
-        output2 = self.resnet(input2)
-        output = self.pdist(output1, output2)
-
-        return output1, output2, output
 
 # ==================================================================
 def __sprokit_register__():
