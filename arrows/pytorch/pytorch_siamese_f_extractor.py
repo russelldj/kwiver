@@ -44,7 +44,8 @@ from kwiver.kwiver_process import KwiverProcess
 from vital.types import Image
 from vital.types import DetectedObject
 from vital.types import DetectedObjectSet
-from kwiver.pytorch.grid import grid
+from kwiver.arrows.pytorch.grid import grid
+from kwiver.arrows.pytorch.track import track_state, track
 
 class pytorch_siamese_f_extractor(KwiverProcess):
     """
@@ -120,7 +121,9 @@ class pytorch_siamese_f_extractor(KwiverProcess):
         grid_feature_list = self._grid(im.size, dos)
         print(grid_feature_list) 
         
-        for item in dos:
+        track_state_list = []
+
+        for idx, item in enumerate(dos):
             item_box = item.bounding_box()
 
             # center of bbox
@@ -143,6 +146,10 @@ class pytorch_siamese_f_extractor(KwiverProcess):
 
             # appearance features
             app_feature = output.data.cpu().numpy().squeeze()
+
+            # build track state for current bbox for matching
+            cur_ts = track_state(bbox_center=center, grid_feature = grid_feature_list[idx], app_feature=app_feature)
+            track_state_list.append(cur_ts)
 
         # push dummy detections object to output port
         #detections = DetectedObjectSet()
