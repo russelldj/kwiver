@@ -28,48 +28,56 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef KWIVER_ARROWS_BURNOUT_TRACK_DESCRIPTORS
-#define KWIVER_ARROWS_BURNOUT_TRACK_DESCRIPTORS
+#ifndef _KWIVER_INITIALIZE_OBJECT_TRACKS_PROCESS_H_
+#define _KWIVER_INITIALIZE_OBJECT_TRACKS_PROCESS_H_
 
-#include <arrows/burnout/kwiver_algo_burnout_export.h>
+#include "kwiver_processes_export.h"
 
-#include <vital/vital_config.h>
+#include <sprokit/pipeline/process.h>
 
-#include <vital/algo/compute_track_descriptors.h>
+#include <memory>
 
-namespace kwiver {
-namespace arrows {
-namespace burnout {
-
-// ----------------------------------------------------------------
-/**
- * @brief burnout_track_descriptors
- *
- */
-class KWIVER_ALGO_BURNOUT_EXPORT burnout_track_descriptors
-  : public vital::algorithm_impl< burnout_track_descriptors,
-      vital::algo::compute_track_descriptors >
+namespace kwiver
 {
-public:
 
-  burnout_track_descriptors();
-  virtual ~burnout_track_descriptors();
+// -----------------------------------------------------------------------------
+/**
+ * \class initialize_object_tracks_process
+ *
+ * \brief Initialized new tracks given object detections.
+ *
+ *  On optional input track port will union the input track set and newly
+ *  initialized tracks.
+ * 
+ * \iports
+ * \iport{timestamp}
+ * \iport{image}
+ * \iport{detections}
+ * \iport{tracks}
+ *
+ * \oports
+ * \oport{tracks}
+ */
+class KWIVER_PROCESSES_NO_EXPORT initialize_object_tracks_process
+  : public sprokit::process
+{
+  public:
+  initialize_object_tracks_process( vital::config_block_sptr const& config );
+  virtual ~initialize_object_tracks_process();
 
-  virtual vital::config_block_sptr get_configuration() const;
+  protected:
+    virtual void _configure();
+    virtual void _step();
+    virtual void _init();
 
-  virtual void set_configuration( vital::config_block_sptr config );
-  virtual bool check_configuration( vital::config_block_sptr config ) const;
+  private:
+    void make_ports();
+    void make_config();
 
-  virtual kwiver::vital::track_descriptor_set_sptr
-  compute( kwiver::vital::image_container_sptr image_data,
-           kwiver::vital::object_track_set_sptr tracks );
+    class priv;
+    const std::unique_ptr<priv> d;
+ }; // end class initialize_object_tracks_process
 
-private:
 
-  class priv;
-  const std::unique_ptr<priv> d;
-};
-
-} } }
-
-#endif /* KWIVER_ARROWS_BURNOUT_DETECTOR */
+} // end namespace
+#endif /* _KWIVER_INITIALIZE_OBJECT_TRACKS_PROCESS_H_ */

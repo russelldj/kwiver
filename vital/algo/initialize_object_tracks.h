@@ -1,5 +1,5 @@
 /*ckwg +29
- * Copyright 2013-2017 by Kitware, Inc.
+ * Copyright 2017 by Kitware, Inc.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,37 +30,54 @@
 
 /**
  * \file
- * \brief Typedefs for Eigen matrices
+ * \brief initialize_object_tracks algorithm definition
  */
 
-#ifndef VITAL_MATRIX_H_
-#define VITAL_MATRIX_H_
+#ifndef VITAL_ALGO_INITIALIZE_OBJECT_TRACKS_MATRIX_H_
+#define VITAL_ALGO_INITIALIZE_OBJECT_TRACKS_MATRIX_H_
 
-#include <Eigen/Core>
+#include <vital/vital_config.h>
+#include <vital/algo/algorithm.h>
+
+#include <vital/types/timestamp.h>
+#include <vital/types/object_track_set.h>
+#include <vital/types/detected_object_set.h>
+#include <vital/types/image_container.h>
 
 namespace kwiver {
 namespace vital {
+namespace algo {
 
-/// \cond DoxygenSuppress
-typedef Eigen::MatrixXd matrix_d;
-typedef Eigen::MatrixXf matrix_f;
+/// An abstract base class for computing association cost matrices for tracking
+class VITAL_ALGO_EXPORT initialize_object_tracks
+  : public kwiver::vital::algorithm_def<initialize_object_tracks>
+{
+public:
+  /// Return the name of this algorithm
+  static std::string static_type_name() { return "initialize_object_tracks"; }
 
-typedef Eigen::Matrix< double, 2, 2 > matrix_2x2d;
-typedef Eigen::Matrix< float, 2, 2 >  matrix_2x2f;
-typedef Eigen::Matrix< double, 2, 3 > matrix_2x3d;
-typedef Eigen::Matrix< float, 2, 3 >  matrix_2x3f;
-typedef Eigen::Matrix< double, 3, 2 > matrix_3x2d;
-typedef Eigen::Matrix< float, 3, 2 >  matrix_3x2f;
-typedef Eigen::Matrix< double, 3, 3 > matrix_3x3d;
-typedef Eigen::Matrix< float, 3, 3 >  matrix_3x3f;
-typedef Eigen::Matrix< double, 3, 4 > matrix_3x4d;
-typedef Eigen::Matrix< float, 3, 4 >  matrix_3x4f;
-typedef Eigen::Matrix< double, 4, 3 > matrix_4x3d;
-typedef Eigen::Matrix< float, 4, 3 >  matrix_4x3f;
-typedef Eigen::Matrix< double, 4, 4 > matrix_4x4d;
-typedef Eigen::Matrix< float, 4, 4 >  matrix_4x4f;
-/// \endcond
+  /// Initialize new object tracks given detections.
+  /**
+   * \param ts frame ID
+   * \param image contains the input image for the current frame
+   * \param detections detected object sets from the current frame
+   * \returns newly initialized tracks
+   */
+  virtual kwiver::vital::object_track_set_sptr
+  initialize( kwiver::vital::timestamp ts,
+              kwiver::vital::image_container_sptr image,
+              kwiver::vital::detected_object_set_sptr detections ) const = 0;
 
-} } // end namespace vital
+protected:
+  initialize_object_tracks();
 
-#endif // VITAL_MATRIX_H_
+};
+
+
+/// Shared pointer for initialize_object_tracks algorithm definition class
+typedef std::shared_ptr<initialize_object_tracks> initialize_object_tracks_sptr;
+
+
+} } } // end namespace
+
+#endif // VITAL_ALGO_INITIALIZE_OBJECT_TRACKS_H_
