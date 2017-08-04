@@ -80,6 +80,7 @@ class pytorch_siamese_f_extractor(KwiverProcess):
         #  input port ( port-name,flags)
         self.declare_input_port_using_trait('image', required)
         self.declare_input_port_using_trait('detected_object_set', optional)
+        self.declare_input_port_using_trait('object_track_set', optional)
 
         #  output port ( port-name,flags)
         self.declare_output_port_using_trait('feature_set', optional)
@@ -112,6 +113,9 @@ class pytorch_siamese_f_extractor(KwiverProcess):
         # grab image container from port using traits
         in_img_c = self.grab_input_using_trait('image')
         dos_ptr = self.grab_input_using_trait('detected_object_set')
+
+        # all existing object_track_set
+        #ots_ptr = self.grab_input_using_trait('object_track_set')
 
         # Get image and resize
         im = in_img_c.get_image().get_pil_image()
@@ -151,8 +155,10 @@ class pytorch_siamese_f_extractor(KwiverProcess):
             app_feature = output.data.cpu().numpy().squeeze()
 
             # build track state for current bbox for matching
-            cur_ts = track_state(bbox_center=center, grid_feature = grid_feature_list[idx], app_feature=app_feature)
+            cur_ts = track_state(bbox_center=center, interaction_feature = grid_feature_list[idx], app_feature=app_feature)
             track_state_list.append(cur_ts)
+
+        
 
         # push dummy detections object to output port
         #detections = DetectedObjectSet()
@@ -174,3 +180,4 @@ def __sprokit_register__():
     process_factory.add_process( 'pytorch_siamese_f_extractor', 'pytorch siamese feature extractor', pytorch_siamese_f_extractor )
 
     process_factory.mark_process_module_as_loaded( module_name )
+
