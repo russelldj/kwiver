@@ -115,14 +115,36 @@ class track_set(object):
 
     def get_all_trackID(self):
         return sorted(self._id_ts_dict.keys())
-
-    def add_track(self, track_id, track):
-        if track.track_id != -1:
-            assert(track_id == track.track_id)
+    
+    def get_max_track_ID(self):
+        if len(self._id_ts_dict) == 0:
+            return 0
         else:
-            track.track_id = track_id
+            return max(self.get_all_trackID())
 
-        self._id_ts_dict[track_id] = track
+    def add_new_track(self, track):
+        if track.track_id is in self.get_all_trackID():
+            print("track ID exsit in the track set!!!")
+            raise RuntimeError
+
+        self._id_ts_dict[track.track_id] = track
+    
+    def add_new_track_state(self, track_id, track_state):
+        if track_id is in self.get_all_trackID():
+            print("track ID exsit in the track set!!!")
+            raise RuntimeError
+        
+        new_track = track(track_id)
+        new_track.append(track_state)
+        self._id_ts_dict[track_id] = new_track
+
+
+    def update_track(self, track_id, new_track_state):
+        if track_id not in self._id_ts_dict:
+            raise IndexError
+
+        self._id_ts_dict[track_id].append(new_track_state)
+
 
 if __name__ == '__main__':
     t = track(0)

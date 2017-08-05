@@ -18,6 +18,7 @@ class SRNN_matching(object):
         snapshot = torch.load(targetRNN_model_path)
         self._targetRNN_model.load_state_dict(snapshot['state_dict'])
         self._targetRNN_model.train(False)
+        self._targetRNN = torch.nn.DataParallel(self._targetRNN).cuda()
 
     def __call__(self, track_set, track_state_list):
         tracks_num = len(track_set)
@@ -52,9 +53,9 @@ class SRNN_matching(object):
         pred_p = pred[0].data.cpu().numpy().squeeze()
 
         if pred_lable == 0:
-            return -1.0
+            return 1.0
         else:
-            return pred_p
+            return -pred_p
 
     def _process_track(self, track, track_state):
 

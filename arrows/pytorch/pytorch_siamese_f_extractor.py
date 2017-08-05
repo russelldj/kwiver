@@ -1,4 +1,4 @@
-#ckwg +28
+# ckwg +28
 # Copyright 2017 by Kitware, Inc.
 # All rights reserved.
 #
@@ -36,6 +36,7 @@ from torchvision import models, transforms
 from torch.autograd import Variable
 from torch import nn
 import numpy as np
+import scipy as sp
 
 from PIL import Image as pilImage
 
@@ -47,7 +48,8 @@ from vital.types import DetectedObjectSet
 
 from kwiver.arrows.pytorch.models import Siamese
 from kwiver.arrows.pytorch.grid import grid
-from kwiver.arrows.pytorch.track import track_state, track
+from kwiver.arrows.pytorch.track import track_state, track, track_set
+from kwiver.arrows.pytorch.SRNN_matching import SRNN_matching
 
 
 class pytorch_siamese_f_extractor(KwiverProcess):
@@ -55,22 +57,45 @@ class pytorch_siamese_f_extractor(KwiverProcess):
     This process gets an image as input, does some stuff to it and
     sends the modified version to the output port.
     """
+
     # ----------------------------------------------
     def __init__(self, conf):
         KwiverProcess.__init__(self, conf)
 
-        self.add_config_trait("siamese_model_path", "siamese_model_path", '/home/bdong/HiDive_project/tracking_the_untrackable/snapshot/siamese/snapshot_epoch_6.pt',
-          'Trained PyTorch model.')
+        self.add_config_trait("siamese_model_path", "siamese_model_path",
+                              '/home/bdong/HiDive_project/tracking_the_untrackable/snapshot/siamese/snapshot_epoch_6.pt',
+                              'Trained PyTorch model.')
         self.add_config_trait("siamese_model_input_size", "siamese_model_input_size", '224',
-          'Model input image size' )
+                              'Model input image size')
         self.add_config_trait("detection_select_threshold", "detection_select_threshold", '0.0',
-          'detection select threshold' )
+                              'detection select threshold')
 
         self.declare_config_using_trait('siamese_model_path')
         self.declare_config_using_trait('siamese_model_input_size')
         self.declare_config_using_trait('detection_select_threshold')
 
-        #self.add_port_trait('detections', 'detected_object_set', 'Output detections')
+        # appearance model
+        self.add_config_trait("appearance_model_path", "appearance_model_path",
+                              '/home/bdong/HiDive_project/tracking_the_untrackable/snapshot/app_snapshot/App_LSTM_epoch_51.pt',
+                              'Trained appearance PyTorch model.')
+
+        # motion model
+        self.add_config_trait("motion_model_path", "motion_model_path",
+                              '/home/bdong/HiDive_project/tracking_the_untrackable/snapshot/motion_snapshot/App_LSTM_epoch_51.pt',
+                              'Trained motion PyTorch model.')
+
+        # interaction model
+        self.add_config_trait("interaction_model_path", "interaction_model_path",
+                              '/home/bdong/HiDive_project/tracking_the_untrackable/snapshot/interaction_snapshot/App_LSTM_epoch_51.pt',
+                              'Trained interaction PyTorch model.')
+
+        # target RNN model
+        self.add_config_trait("targetRNN_model_path", "targetRNN_model_path",
+                              '/home/bdong/HiDive_project/tracking_the_untrackable/snapshot/targetRNN_snapshot/App_LSTM_epoch_51.pt',
+                              'Trained targetRNN PyTorch model.')
+
+        self.add_config_trait("similarity_threshold", "similarity_threshold", '0.5',
+                              'similarity threshold.')
 
         # set up required flags
         optional = process.PortFlags()
@@ -78,8 +103,9 @@ class pytorch_siamese_f_extractor(KwiverProcess):
         required.add(self.flag_required)
 
         #  input port ( port-name,flags)
+        # self.declare_input_port_using_trait('framestamp', optional)
         self.declare_input_port_using_trait('image', required)
-        self.declare_input_port_using_trait('detected_object_set', optional)
+        self.declare_input_port_using_trait('detected_object_set', required)
         self.declare_input_port_using_trait('object_track_set', optional)
 
         #  output port ( port-name,flags)
@@ -90,7 +116,7 @@ class pytorch_siamese_f_extractor(KwiverProcess):
         self._img_size = int(self.config_value('siamese_model_input_size'))
         self._model_path = self.config_value('siamese_model_path')
         self._select_threshold = float(self.config_value('detection_select_threshold'))
-        
+
         self._model = Siamese()
         self._model = torch.nn.DataParallel(self._model).cuda()
 
@@ -98,13 +124,25 @@ class pytorch_siamese_f_extractor(KwiverProcess):
         self._model.load_state_dict(snapshot['state_dict'])
         print('Model loaded from {}'.format(self._model_path))
         self._model.train(False)
-        self._grid = grid() 
+        self._grid = grid()
+
+        app_model_path = self.config_value('appearance_model_path')
+        motion_model_path = self.config_value('motion_model_path')
+        interaction_model_path = self.config_value('interaction_model_path')
+        targetRNN_model_path = self.config_value('targetRNN_model_path')
+        self.SRNN_matching = SRNN_matching(app_model_path, motion_model_path, interaction_model_path,
+                                           targetRNN_model_path)
+
+        self._similarity_threshold = float(self.config_value('similarity_threshold'))
+
+        # generated track_set
+        self._track_set = track_set()
 
         self._loader = transforms.Compose([
-                       transforms.Scale(224),
-                       transforms.ToTensor(),
-                       transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-                   ])
+            transforms.Scale(224),
+            transforms.ToTensor(),
+            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+        ])
 
         self._base_configure()
 
@@ -114,8 +152,15 @@ class pytorch_siamese_f_extractor(KwiverProcess):
         in_img_c = self.grab_input_using_trait('image')
         dos_ptr = self.grab_input_using_trait('detected_object_set')
 
+        # TODO: make sure tos_ptr is the type of TrackSet defined in track_set.py
+        tos_ptr = self.grab_input_using_trait('object_track_set')
+
+        # TODO: not sure whether we need it or not
+        # get all stored tracks based on input track_ids
+        t_id_set = tos_ptr.all_track_ids()
+
         # all existing object_track_set
-        #ots_ptr = self.grab_input_using_trait('object_track_set')
+        # ots_ptr = self.grab_input_using_trait('object_track_set')
 
         # Get image and resize
         im = in_img_c.get_image().get_pil_image()
@@ -123,12 +168,13 @@ class pytorch_siamese_f_extractor(KwiverProcess):
         # Get detection bbox
         dos = dos_ptr.select(self._select_threshold)
         print('bbox list len is {}'.format(len(dos)))
-        
+
         # interaction features
         grid_feature_list = self._grid(im.size, dos)
-        print(grid_feature_list) 
-        
+        print(grid_feature_list)
+
         track_state_list = []
+        next_trackID = int(self._track_set.get_max_track_ID()) + 1
 
         for idx, item in enumerate(dos):
             item_box = item.bounding_box()
@@ -136,7 +182,7 @@ class pytorch_siamese_f_extractor(KwiverProcess):
             # center of bbox
             center = tuple((item_box.center()))
 
-            im = im.crop((float(item_box.min_x()), float(item_box.min_y()), 
+            im = im.crop((float(item_box.min_x()), float(item_box.min_y()),
                           float(item_box.max_x()), float(item_box.max_y())))
             im.show()
 
@@ -155,17 +201,32 @@ class pytorch_siamese_f_extractor(KwiverProcess):
             app_feature = output.data.cpu().numpy().squeeze()
 
             # build track state for current bbox for matching
-            cur_ts = track_state(bbox_center=center, interaction_feature = grid_feature_list[idx], app_feature=app_feature)
+            cur_ts = track_state(bbox_center=center, interaction_feature=grid_feature_list[idx],
+                                 app_feature=app_feature)
             track_state_list.append(cur_ts)
 
-        
+        # estimate similarity matrix
+        similarity_mat, track_idx_list = self.SRNN_matching(self._track_set, track_state_list)
+
+        # Hungarian algorithm
+        row_idx, col_idx = sp.optimize.linear_sum_assignment(similarity_mat)
+
+        for ri in row_idx:
+            for ci in col_idx:
+                if -similarity_mat[ri, ci] < self._similarity_threshold:
+                    # initialize a new track
+                    self._track_set.get_track(track_idx_list[ri]).add_new_track_state(next_trackID, track_state_list[ci])
+                    next_trackID += 1
+                else:
+                    # add to existing track
+                    self._track_set.update_track(track_idx_list[ri], track_state_list[ci])
+
 
         # push dummy detections object to output port
-        #detections = DetectedObjectSet()
-        #self.push_to_port_using_trait('detected_object_set', detections)
+        # detections = DetectedObjectSet()
+        # self.push_to_port_using_trait('detected_object_set', detections)
 
         self._base_step()
-
 
 
 # ==================================================================
@@ -174,10 +235,12 @@ def __sprokit_register__():
 
     module_name = 'python:kwiver.pytorch_siamese_f_extractor'
 
-    if process_factory.is_process_module_loaded( module_name ):
+    if process_factory.is_process_module_loaded(module_name):
         return
 
-    process_factory.add_process( 'pytorch_siamese_f_extractor', 'pytorch siamese feature extractor', pytorch_siamese_f_extractor )
+    process_factory.add_process('pytorch_siamese_f_extractor', 'pytorch siamese feature extractor',
+                                pytorch_siamese_f_extractor)
 
-    process_factory.mark_process_module_as_loaded( module_name )
+    process_factory.mark_process_module_as_loaded(module_name)
+
 
