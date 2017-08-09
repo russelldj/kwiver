@@ -9,10 +9,9 @@ TIMESTEP_LEN = 6
 g_config = get_config()
 
 class SRNN_matching(object):
-    def __init__(self, app_model_path, motion_model_path, interaction_model_path, targetRNN_model_path):
+    def __init__(self, targetRNN_model_path):
         # load app, motion, interaction LSTM models
-        self._targetRNN_model = TargetLSTM(app_model=app_model_path, motion_model=motion_model_path,
-                   interaction_model=interaction_model_path).cuda()
+        self._targetRNN_model = TargetLSTM()
 
         # load target RNN model
         snapshot = torch.load(targetRNN_model_path)
@@ -52,6 +51,7 @@ class SRNN_matching(object):
         pred_lable = pred[1].data.cpu().numpy().squeeze()
         pred_p = pred[0].data.cpu().numpy().squeeze()
 
+        # return negative value for huganrian algorithm
         if pred_lable == 0:
             return 1.0
         else:
