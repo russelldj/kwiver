@@ -8,10 +8,18 @@ from kwiver.arrows.pytorch.models import TargetLSTM, get_config
 TIMESTEP_LEN = 6
 g_config = get_config()
 
+
+class RnnType(Enum):
+    Appearance = 1
+    Motion = 2
+    Interaction = 3
+    Target_RNN = 4
+
+
 class SRNN_matching(object):
-    def __init__(self, targetRNN_model_path):
+    def __init__(self, targetRNN_model_path, model_list=(RnnType.Appearance, RnnType.Motion, RnnType.Interaction)):
         # load app, motion, interaction LSTM models
-        self._targetRNN_model = TargetLSTM()
+        self._targetRNN_model = TargetLSTM(model_list=model_list)
 
         # load target RNN model
         snapshot = torch.load(targetRNN_model_path)

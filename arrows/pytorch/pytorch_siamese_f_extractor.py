@@ -49,7 +49,7 @@ from vital.types import DetectedObjectSet
 from kwiver.arrows.pytorch.models import Siamese
 from kwiver.arrows.pytorch.grid import grid
 from kwiver.arrows.pytorch.track import track_state, track, track_set
-from kwiver.arrows.pytorch.SRNN_matching import SRNN_matching
+from kwiver.arrows.pytorch.SRNN_matching import SRNN_matching, RnnType
 
 
 class pytorch_siamese_f_extractor(KwiverProcess):
@@ -111,9 +111,9 @@ class pytorch_siamese_f_extractor(KwiverProcess):
         print('Model loaded from {}'.format(self._model_path))
         self._siamese_model.train(False)
         
-        # targetRNN model config
+        # targetRNN_AI model config
         targetRNN_model_path = self.config_value('targetRNN_model_path')
-        self.SRNN_matching = SRNN_matching(targetRNN_model_path)
+        self.SRNN_matching = SRNN_matching(targetRNN_model_path, model_list=(RnnType.Appearance, RnnType.Interaction))
 
         self._similarity_threshold = float(self.config_value('similarity_threshold'))
         self._grid = grid()
@@ -135,16 +135,6 @@ class pytorch_siamese_f_extractor(KwiverProcess):
         in_img_c = self.grab_input_using_trait('image')
         dos_ptr = self.grab_input_using_trait('detected_object_set')
 
-        # TODO: make sure tos_ptr is the type of TrackSet defined in track_set.py
-        tos_ptr = self.grab_input_using_trait('object_track_set')
-
-        # TODO: not sure whether we need it or not
-        # get all stored tracks based on input track_ids
-        t_id_set = tos_ptr.all_track_ids()
-
-        # all existing object_track_set
-        # ots_ptr = self.grab_input_using_trait('object_track_set')
-
         # Get image and resize
         im = in_img_c.get_image().get_pil_image()
 
@@ -158,7 +148,8 @@ class pytorch_siamese_f_extractor(KwiverProcess):
 
         track_state_list = []
         next_trackID = int(self._track_set.get_max_track_ID()) + 1
-
+        
+        # get new track state from new frame and detections
         for idx, item in enumerate(dos):
             item_box = item.bounding_box()
 
@@ -190,6 +181,8 @@ class pytorch_siamese_f_extractor(KwiverProcess):
         
         # TODO:
         # if there is no tracks, generate new tracks from the track_state_list
+        if 
+
         # if the track does not have enough track_state, we will duplicate to time-step, but only use app and interaction features
         # if the track does have enough track states, we use the original targetRNN
 
