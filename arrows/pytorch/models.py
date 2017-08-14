@@ -1,6 +1,7 @@
 import torch
 from torchvision import models
 from torch import nn
+from enum import Enum
 
 
 def get_config():
@@ -14,6 +15,14 @@ def get_config():
     return Config()
 
 g_config = get_config()
+
+
+class RnnType(Enum):
+    Appearance = 1
+    Motion = 2
+    Interaction = 3
+    Target_RNN_FULL = 4
+    Target_RNN_AI = 5
 
 
 # Siamese network
@@ -144,29 +153,33 @@ class MotionLSTM(nn.Module):
 # Target LSTM
 # ==================================================================
 class TargetLSTM(nn.Module):
-    def __init__(self, app_model='', motion_model='', interaction_model='', train_flag=False):
+    def __init__(self, app_model='', motion_model='', interaction_model='',
+                 model_list=(RnnType.Appearance, RnnType.Motion, RnnType.Interaction)):
         super(TargetLSTM, self).__init__()
 
-        self.appearance = AppearanceLSTM()
-        if app_model is not '':
-            snapshot = torch.load(app_model)
-            self.appearance.load_state_dict(snapshot['state_dict'])
-            self.appearance.train(train_flag)
+        self.model_list = model_list
 
-        self.motion = MotionLSTM().cuda()
-        if motion_model is not '':
-            snapshot = torch.load(motion_model)
-            self.motion.load_state_dict(snapshot['state_dict'])
-            self.motion.train(train_flag)
+        if RnnType.Appearance in self.model_list:
+            self.appearance = AppearanceLSTM().cuda()
+            #self.appearance = torch.nn.DataParallel(self.appearance).cuda()
+            if app_model is not '':
+                snapshot = torch.load(app_model)
+                self.appearance.load_state_dict(snapshot['state_dict'])
 
-        self.interaction = InteractionLSTM().cuda()
-        if interaction_model is not '':
-            snapshot = torch.load(interaction_model)
-            self.interaction.load_state_dict(snapshot['state_dict'])
-            self.interaction.train(train_flag)
+        if RnnType.Motion in self.model_list:
+            self.motion = MotionLSTM().cuda()
+            if motion_model is not '':
+                snapshot = torch.load(motion_model)
+                self.motion.load_state_dict(snapshot['state_dict'])
+
+        if RnnType.Interaction in self.model_list:
+            self.interaction = InteractionLSTM().cuda()
+            if interaction_model is not '':
+                snapshot = torch.load(interaction_model)
+                self.interaction.load_state_dict(snapshot['state_dict'])
 
         self.lstm = nn.LSTM(
-            input_size=g_config.K * 3,
+            input_size=g_config.K * len(model_list),
             hidden_size=g_config.H,
             num_layers=1,
             batch_first=True
@@ -174,8 +187,9 @@ class TargetLSTM(nn.Module):
 
         self.fc1 = nn.Linear(g_config.H, 2)
 
-    def forward(self, appearance_input, appearance_target, motion_input, motion_target, interaction_input,
-                interaction_target):
+
+    def forward(self, appearance_input=None, appearance_target=None, motion_input=None,
+                motion_target=None, interaction_input=None, interaction_target=None):
         r"""
         :param appearance_input:    appearance features         (batch, time_step, input_size)
         :param appearance_target:   appearance target feature   (batch, 1, input_size)
@@ -186,13 +200,23 @@ class TargetLSTM(nn.Module):
         :return:
         """
 
-        _, app_out = self.appearance(appearance_input, appearance_target)
-        _, motion_out = self.motion(motion_input, motion_target)
-        _, interaction_out = self.interaction(interaction_input, interaction_target)
+        out_list = []
+        if RnnType.Appearance in self.model_list:
+            _, app_out = self.appearance(appearance_input, appearance_target)
+            out_list.append(app_out)
 
-        combined_input = torch.cat((app_out, motion_out, interaction_out), 2)
+        if RnnType.Motion in self.model_list:
+            _, motion_out = self.motion(motion_input, motion_target)
+            out_list.append(motion_out)
+
+        if RnnType.Interaction in self.model_list:
+            _, interaction_out = self.interaction(interaction_input, interaction_target)
+            out_list.append(interaction_out)
+
+        combined_input = torch.cat(out_list, 2)
         r_out, (h_t, c_t) = self.lstm(combined_input, None)
 
         out = self.fc1(r_out[:, -1, :])
+
         return out
 

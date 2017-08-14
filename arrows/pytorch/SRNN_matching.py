@@ -3,19 +3,10 @@ from torch import nn
 
 import numpy as np
 
-from kwiver.arrows.pytorch.models import TargetLSTM, get_config
+from kwiver.arrows.pytorch.models import TargetLSTM, get_config, RnnType
 
 TIMESTEP_LEN = 6
 g_config = get_config()
-
-
-class RnnType(Enum):
-    Appearance = 1
-    Motion = 2
-    Interaction = 3
-    Target_RNN_FULL = 4
-    Target_RNN_AI = 5
-
 
 class SRNN_matching(object):
     def __init__(self, targetRNN_full_model_path, targetRNN_AI_model_path):
@@ -36,7 +27,7 @@ class SRNN_matching(object):
         self._targetRNN_AI_model = TargetLSTM(model_list=model_list)
 
         # load full target RNN model
-        snapshot = torch.load(targetRNN_full_model_path)
+        snapshot = torch.load(targetRNN_AI_model_path)
         self._targetRNN_AI_model.load_state_dict(snapshot['state_dict'])
         self._targetRNN_AI_model.train(False)
         self._targetRNN_AI_model = torch.nn.DataParallel(self._targetRNN_AI_model).cuda()

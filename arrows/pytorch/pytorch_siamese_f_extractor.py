@@ -70,10 +70,6 @@ class pytorch_siamese_f_extractor(KwiverProcess):
         self.add_config_trait("detection_select_threshold", "detection_select_threshold", '0.0',
                               'detection select threshold')
 
-        self.declare_config_using_trait('siamese_model_path')
-        self.declare_config_using_trait('siamese_model_input_size')
-        self.declare_config_using_trait('detection_select_threshold')
-
         # target RNN full model
         self.add_config_trait("targetRNN_full_model_path", "targetRNN_full_model_path",
                               '/home/bdong/HiDive_project/tracking_the_untrackable/snapshot/targetRNN_snapshot/App_LSTM_epoch_51.pt',
@@ -87,6 +83,13 @@ class pytorch_siamese_f_extractor(KwiverProcess):
         self.add_config_trait("similarity_threshold", "similarity_threshold", '0.5',
                               'similarity threshold.')
         
+        self.declare_config_using_trait('siamese_model_path')
+        self.declare_config_using_trait('siamese_model_input_size')
+        self.declare_config_using_trait('detection_select_threshold')
+        self.declare_config_using_trait('targetRNN_full_model_path')
+        self.declare_config_using_trait('targetRNN_AI_model_path')
+        self.declare_config_using_trait('similarity_threshold')
+
         self._track_flag = False
 
         # set up required flags
@@ -120,7 +123,7 @@ class pytorch_siamese_f_extractor(KwiverProcess):
         
         # targetRNN_full model config
         targetRNN_full_model_path = self.config_value('targetRNN_full_model_path')
-        targetRNN_AI_model_path = self.config_vale('targetRNN_AI_model_path')
+        targetRNN_AI_model_path = self.config_value('targetRNN_AI_model_path')
         self.SRNN_matching = SRNN_matching(targetRNN_full_model_path, targetRNN_AI_model_path)
 
         self._similarity_threshold = float(self.config_value('similarity_threshold'))

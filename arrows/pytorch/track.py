@@ -143,15 +143,15 @@ class track_set(object):
             return max(self.get_all_trackID())
 
     def add_new_track(self, track):
-        if track.track_id is in self.get_all_trackID():
+        if track.id in self.get_all_trackID():
             print("track ID exsit in the track set!!!")
             raise RuntimeError
 
-        self._id_ts_dict[track.track_id] = track
+        self._id_ts_dict[track.id] = track
     
 
     def add_new_track_state(self, track_id, track_state):
-        if track_id is in self.get_all_trackID():
+        if track_id in self.get_all_trackID():
             print("track ID exsit in the track set!!!")
             raise RuntimeError
         
@@ -162,7 +162,7 @@ class track_set(object):
     def add_new_track_state(self, start_track_id, track_state_list):
         for i in range(len(track_state_list)):
             cur_track_id = start_track_id + i
-            if cur_track_id is in self.get_all_trackID():
+            if cur_track_id in self.get_all_trackID():
                 print("track ID {} exsit in the track set!!!".format(cur_track_id))
                 raise RuntimeError
             
