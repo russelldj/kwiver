@@ -84,6 +84,14 @@ class track(object):
     def id(self, val):
         self._track_id = val
 
+    @property
+    def track_state_list(self):
+        return self._track_state_list
+
+    @track_state_list.setter
+    def track_state_list(self, val):
+        self._track_state_list = val
+
     def append(self, new_track_state):
         if len(self._track_state_list) == 0:
             new_track_state.motion_feature = np.array([[0.0, 0.0]])
@@ -93,6 +101,18 @@ class track(object):
             new_track_state._motion_feature = cur_bbox_center - pre_bbox_center
 
         self._track_state_list.append(new_track_state)
+
+    def duplicate_track_state(timestep_len = 6):
+        if len(self._track_state_list) >= timestep_len:
+            pass
+        else:
+            du_track = track(self._track_id)
+            du_track.track_state_list = copy.deepcopy(self._track_state_list) 
+
+            for i in range(timestep_len - len(du_track)):
+                du_track.append(du_track[-1])
+
+        return du_track
 
 
 class track_set(object):
@@ -129,6 +149,7 @@ class track_set(object):
 
         self._id_ts_dict[track.track_id] = track
     
+
     def add_new_track_state(self, track_id, track_state):
         if track_id is in self.get_all_trackID():
             print("track ID exsit in the track set!!!")
@@ -137,7 +158,15 @@ class track_set(object):
         new_track = track(track_id)
         new_track.append(track_state)
         self._id_ts_dict[track_id] = new_track
-
+    
+    def add_new_track_state(self, start_track_id, track_state_list):
+        for i in range(len(track_state_list)):
+            cur_track_id = start_track_id + i
+            if cur_track_id is in self.get_all_trackID():
+                print("track ID {} exsit in the track set!!!".format(cur_track_id))
+                raise RuntimeError
+            
+            self.add_new_track_state(cur_track_id, track_state_list[i])
 
     def update_track(self, track_id, new_track_state):
         if track_id not in self._id_ts_dict:

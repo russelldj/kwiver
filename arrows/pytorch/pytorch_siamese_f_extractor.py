@@ -74,13 +74,20 @@ class pytorch_siamese_f_extractor(KwiverProcess):
         self.declare_config_using_trait('siamese_model_input_size')
         self.declare_config_using_trait('detection_select_threshold')
 
-        # target RNN model
-        self.add_config_trait("targetRNN_model_path", "targetRNN_model_path",
+        # target RNN full model
+        self.add_config_trait("targetRNN_full_model_path", "targetRNN_full_model_path",
                               '/home/bdong/HiDive_project/tracking_the_untrackable/snapshot/targetRNN_snapshot/App_LSTM_epoch_51.pt',
                               'Trained targetRNN PyTorch model.')
 
+        # target RNN AI model
+        self.add_config_trait("targetRNN_AI_model_path", "targetRNN_AI_model_path",
+                              '/home/bdong/HiDive_project/tracking_the_untrackable/snapshot/targetRNN_AI/App_LSTM_epoch_51.pt',
+                              'Trained targetRNN AI PyTorch model.')
+
         self.add_config_trait("similarity_threshold", "similarity_threshold", '0.5',
                               'similarity threshold.')
+        
+        self._track_flag = False
 
         # set up required flags
         optional = process.PortFlags()
@@ -111,9 +118,10 @@ class pytorch_siamese_f_extractor(KwiverProcess):
         print('Model loaded from {}'.format(self._model_path))
         self._siamese_model.train(False)
         
-        # targetRNN_AI model config
-        targetRNN_model_path = self.config_value('targetRNN_model_path')
-        self.SRNN_matching = SRNN_matching(targetRNN_model_path, model_list=(RnnType.Appearance, RnnType.Interaction))
+        # targetRNN_full model config
+        targetRNN_full_model_path = self.config_value('targetRNN_full_model_path')
+        targetRNN_AI_model_path = self.config_vale('targetRNN_AI_model_path')
+        self.SRNN_matching = SRNN_matching(targetRNN_full_model_path, targetRNN_AI_model_path)
 
         self._similarity_threshold = float(self.config_value('similarity_threshold'))
         self._grid = grid()
@@ -179,12 +187,10 @@ class pytorch_siamese_f_extractor(KwiverProcess):
                                  app_feature=app_feature)
             track_state_list.append(cur_ts)
         
-        # TODO:
         # if there is no tracks, generate new tracks from the track_state_list
-        if 
-
-        # if the track does not have enough track_state, we will duplicate to time-step, but only use app and interaction features
-        # if the track does have enough track states, we use the original targetRNN
+        if self._track_flag is False:
+            self._track_set.add_new_track_state(next_trackID, track_state_list)
+            self._track_flag = True
 
         # estimate similarity matrix
         similarity_mat, track_idx_list = self.SRNN_matching(self._track_set, track_state_list)
@@ -223,5 +229,4 @@ def __sprokit_register__():
                                 pytorch_siamese_f_extractor)
 
     process_factory.mark_process_module_as_loaded(module_name)
-
 

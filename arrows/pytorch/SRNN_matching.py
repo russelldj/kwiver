@@ -13,19 +13,33 @@ class RnnType(Enum):
     Appearance = 1
     Motion = 2
     Interaction = 3
-    Target_RNN = 4
+    Target_RNN_FULL = 4
+    Target_RNN_AI = 5
 
 
 class SRNN_matching(object):
-    def __init__(self, targetRNN_model_path, model_list=(RnnType.Appearance, RnnType.Motion, RnnType.Interaction)):
-        # load app, motion, interaction LSTM models
-        self._targetRNN_model = TargetLSTM(model_list=model_list)
+    def __init__(self, targetRNN_full_model_path, targetRNN_AI_model_path):
 
-        # load target RNN model
-        snapshot = torch.load(targetRNN_model_path)
-        self._targetRNN_model.load_state_dict(snapshot['state_dict'])
-        self._targetRNN_model.train(False)
-        self._targetRNN = torch.nn.DataParallel(self._targetRNN).cuda()
+        # load app, motion, interaction LSTM models
+        model_list=(RnnType.Appearance, RnnType.Motion, RnnType.Interaction)
+        self._targetRNN_full_model = TargetLSTM(model_list=model_list)
+
+        # load full target RNN model
+        snapshot = torch.load(targetRNN_full_model_path)
+        self._targetRNN_full_model.load_state_dict(snapshot['state_dict'])
+        self._targetRNN_full_model.train(False)
+        self._targetRNN_full_model = torch.nn.DataParallel(self._targetRNN_full_model).cuda()
+
+
+        # load app, interaction LSTM models
+        model_list=(RnnType.Appearance, RnnType.Interaction)
+        self._targetRNN_AI_model = TargetLSTM(model_list=model_list)
+
+        # load full target RNN model
+        snapshot = torch.load(targetRNN_full_model_path)
+        self._targetRNN_AI_model.load_state_dict(snapshot['state_dict'])
+        self._targetRNN_AI_model.train(False)
+        self._targetRNN_AI_model = torch.nn.DataParallel(self._targetRNN_AI_model).cuda()
 
     def __call__(self, track_set, track_state_list):
         tracks_num = len(track_set)
@@ -39,17 +53,28 @@ class SRNN_matching(object):
             cur_track = track_set[t]
             track_idx_list.append(cur_track.track_id)
             for ts in range(track_states_num):
-                similarity_mat[t, ts] = self._est_similarity(cur_track, track_state_list[ts])
+
+                if len(cur_track) < TIMESTEP_LEN:
+                    # if the track does not have enough track_state, we will duplicate to time-step, but only use app and interaction features
+                    temp_track = cur_track.duplicate_track_state(TIMESTEP_LEN)
+                    similarity_mat[t, ts] = self._est_similarity(temp_track, track_state_list[ts], RnnType=RnnType.Target_RNN_AI)
+                else:
+                    # if the track does have enough track states, we use the original targetRNN
+                    similarity_mat[t, ts] = self._est_similarity(cur_track, track_state_list[ts], RnnType=RnnType.Target_RNN_FULL)
 
         return similarity_mat, track_idx_list
 
-    def _est_similarity(self, track, track_state):
+    def _est_similarity(self, track, track_state, RnnType):
         assert(len(track) >= TIMESTEP_LEN)
 
         in_app_seq, in_app_target, in_motion_seq, in_motion_target, in_interaction_seq, in_interaction_target = \
             self._process_track(track, track_state)
-
-        output = self._targetRNN_model(in_app_seq, in_app_target, in_motion_seq, in_motion_target, in_interaction_seq,
+        
+        if RnnType == RnnType.Target_RNN_FULL:
+            output = self._targetRNN_full_model(in_app_seq, in_app_target, in_motion_seq, in_motion_target, in_interaction_seq,
+                       in_interaction_target)
+        elif RnnType == RnnType.Target_RNN_AI:
+            output = self._targetRNN_AI_model(in_app_seq, in_app_target, in_motion_seq, in_motion_target, in_interaction_seq,
                        in_interaction_target)
 
         F_softmax = nn.Softmax()
