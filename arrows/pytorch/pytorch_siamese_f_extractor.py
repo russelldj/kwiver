@@ -192,7 +192,7 @@ class pytorch_siamese_f_extractor(KwiverProcess):
         
         # if there is no tracks, generate new tracks from the track_state_list
         if self._track_flag is False:
-            self._track_set.add_new_track_state(next_trackID, track_state_list)
+            self._track_set.add_new_track_state_list(next_trackID, track_state_list)
             self._track_flag = True
 
         # estimate similarity matrix

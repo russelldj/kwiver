@@ -14,23 +14,24 @@ class SRNN_matching(object):
         # load app, motion, interaction LSTM models
         model_list=(RnnType.Appearance, RnnType.Motion, RnnType.Interaction)
         self._targetRNN_full_model = TargetLSTM(model_list=model_list)
+        #self._targetRNN_full_model = torch.nn.DataParallel(self._targetRNN_full_model).cuda()
+        self._targetRNN_full_model = self._targetRNN_full_model.cuda()
 
         # load full target RNN model
         snapshot = torch.load(targetRNN_full_model_path)
         self._targetRNN_full_model.load_state_dict(snapshot['state_dict'])
         self._targetRNN_full_model.train(False)
-        self._targetRNN_full_model = torch.nn.DataParallel(self._targetRNN_full_model).cuda()
 
 
         # load app, interaction LSTM models
         model_list=(RnnType.Appearance, RnnType.Interaction)
-        self._targetRNN_AI_model = TargetLSTM(model_list=model_list)
+        self._targetRNN_AI_model = TargetLSTM(model_list=model_list).cuda()
 
         # load full target RNN model
         snapshot = torch.load(targetRNN_AI_model_path)
         self._targetRNN_AI_model.load_state_dict(snapshot['state_dict'])
         self._targetRNN_AI_model.train(False)
-        self._targetRNN_AI_model = torch.nn.DataParallel(self._targetRNN_AI_model).cuda()
+        #self._targetRNN_AI_model = torch.nn.DataParallel(self._targetRNN_AI_model).cuda()
 
     def __call__(self, track_set, track_state_list):
         tracks_num = len(track_set)
@@ -42,7 +43,7 @@ class SRNN_matching(object):
 
         for t in range(tracks_num):
             cur_track = track_set[t]
-            track_idx_list.append(cur_track.track_id)
+            track_idx_list.append(cur_track.id)
             for ts in range(track_states_num):
 
                 if len(cur_track) < TIMESTEP_LEN:

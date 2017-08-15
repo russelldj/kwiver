@@ -1,5 +1,5 @@
 import numpy as np
-
+import copy
 
 class track_state(object):
     def __init__(self, bbox_center, interaction_feature, app_feature):
@@ -71,10 +71,17 @@ class track(object):
         return len(self._track_state_list)
 
     def __getitem__(self, idx):
-        if idx >= len(self._track_state_list):
-            raise IndexError
+        if isinstance(idx, int):
+            if idx >= len(self._track_state_list):
+                raise IndexError
+            return self._track_state_list[idx]
+        elif isinstance(idx, slice):
+            start, stop, step = idx.indices(len(self))
+            return self._track_state_list[start:stop:step]
 
-        return self._track_state_list[idx]
+    def __iter__(self):
+        for item in self._track_state_list:
+            yield item
 
     @property
     def id(self):
@@ -102,7 +109,7 @@ class track(object):
 
         self._track_state_list.append(new_track_state)
 
-    def duplicate_track_state(timestep_len = 6):
+    def duplicate_track_state(self, timestep_len = 6):
         if len(self._track_state_list) >= timestep_len:
             pass
         else:
@@ -159,14 +166,14 @@ class track_set(object):
         new_track.append(track_state)
         self._id_ts_dict[track_id] = new_track
     
-    def add_new_track_state(self, start_track_id, track_state_list):
-        for i in range(len(track_state_list)):
+    def add_new_track_state_list(self, start_track_id, ts_list):
+        for i in range(len(ts_list)):
             cur_track_id = start_track_id + i
             if cur_track_id in self.get_all_trackID():
                 print("track ID {} exsit in the track set!!!".format(cur_track_id))
                 raise RuntimeError
             
-            self.add_new_track_state(cur_track_id, track_state_list[i])
+            self.add_new_track_state(cur_track_id, ts_list[i])
 
     def update_track(self, track_id, new_track_state):
         if track_id not in self._id_ts_dict:
