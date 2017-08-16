@@ -37,6 +37,7 @@ from torch.autograd import Variable
 from torch import nn
 import numpy as np
 import scipy as sp
+import scipy.optimize
 
 from PIL import Image as pilImage
 
@@ -205,7 +206,7 @@ class pytorch_siamese_f_extractor(KwiverProcess):
             for ci in col_idx:
                 if -similarity_mat[ri, ci] < self._similarity_threshold:
                     # initialize a new track
-                    self._track_set.get_track(track_idx_list[ri]).add_new_track_state(next_trackID, track_state_list[ci])
+                    self._track_set.add_new_track_state(next_trackID, track_state_list[ci])
                     next_trackID += 1
                 else:
                     # add to existing track
@@ -214,7 +215,7 @@ class pytorch_siamese_f_extractor(KwiverProcess):
 
         # push dummy detections object to output port
         # ts = track_Set()
-        self.push_to_port_using_trait('object_track_set', ts)
+        #self.push_to_port_using_trait('object_track_set', ts)
 
         self._base_step()
 

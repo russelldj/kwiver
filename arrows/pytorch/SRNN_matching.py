@@ -72,7 +72,7 @@ class SRNN_matching(object):
 
         F_softmax = nn.Softmax()
         output = F_softmax(output)
-        pred = torch.max(output[:, -1, :], 1)
+        pred = torch.max(output, 1)
 
         pred_lable = pred[1].data.cpu().numpy().squeeze()
         pred_p = pred[0].data.cpu().numpy().squeeze()
@@ -101,6 +101,7 @@ class SRNN_matching(object):
                           np.asarray(track[-1].bbox_center).reshape(1, g_config.M_F_num)
 
         # add batch dim
+        # TODO: loader may be simplier this part
         app_f_list = np.reshape(app_f_list, (1, TIMESTEP_LEN, -1))
         app_target_f = np.reshape(app_target_f, (1, -1))
         motion_f_list = np.reshape(motion_f_list, (1, TIMESTEP_LEN, -1))
@@ -111,5 +112,6 @@ class SRNN_matching(object):
         v_app_f_list, v_app_target_f = Variable(torch.from_numpy(app_f_list)).cuda(), Variable(torch.from_numpy(app_target_f)).cuda()
         v_motion_f_list, v_motion_target_f = Variable(torch.from_numpy(motion_f_list)).cuda(), Variable(torch.from_numpy(motion_target_f)).cuda()
         v_interaction_f_list, v_interaction_target_f = Variable(torch.from_numpy(interaction_f_list)).cuda(), Variable(torch.from_numpy(interaction_target_f)).cuda()
+
         return v_app_f_list, v_app_target_f, v_motion_f_list, v_motion_target_f, v_interaction_f_list, v_interaction_target_f
 
