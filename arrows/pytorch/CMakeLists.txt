@@ -8,8 +8,13 @@ kwiver_create_python_plugin_init(kwiver/arrows/pytorch)
 
 # TODO: change KWIVER_ENABLE_PYTHON to KWIVER_ENABLE_PYTORCH
 if( KWIVER_ENABLE_PYTHON )
-  kwiver_add_python_module(${CMAKE_CURRENT_SOURCE_DIR}/pytorch_siamese_f_extractor.py
+
+  kwiver_add_python_module(${CMAKE_CURRENT_SOURCE_DIR}/SRNN_tracking.py
     kwiver/processes
+	SRNN_tracking)
+
+  kwiver_add_python_module(${CMAKE_CURRENT_SOURCE_DIR}/pytorch_siamese_f_extractor.py
+    kwiver/arrows/pytorch
     pytorch_siamese_f_extractor)
 
   kwiver_add_python_module(${CMAKE_CURRENT_SOURCE_DIR}/grid.py

@@ -2,8 +2,11 @@ import numpy as np
 import copy
 
 class track_state(object):
-    def __init__(self, bbox_center, interaction_feature, app_feature):
+    def __init__(self, bbox_center, interaction_feature, app_feature, bbox):
         self._bbox_center = bbox_center
+
+        '''a list [x, y, w, h]'''
+        self._bbox = bbox
 
         self._app_feature = app_feature
         self._motion_feature = np.empty([1, 2])
@@ -11,6 +14,14 @@ class track_state(object):
 
         self._track_id = -1
         self._frame_id = -1
+
+    @property
+    def bbox(self):
+        return self._bbox
+
+    @bbox.setter
+    def bbox(self, val):
+        self._bbox = val
 
     @property
     def bbox_center(self):
