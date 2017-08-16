@@ -192,11 +192,11 @@ class TargetLSTM(nn.Module):
                 motion_target=None, interaction_input=None, interaction_target=None):
         r"""
         :param appearance_input:    appearance features         (batch, time_step, input_size)
-        :param appearance_target:   appearance target feature   (batch, 1, input_size)
+        :param appearance_target:   appearance target feature   (batch, input_size)
         :param motion_input:        motion features             (batch, time_step, input_size)
-        :param motion_target:       motion target features      (batch, 1, input_size)
+        :param motion_target:       motion target features      (batch, input_size)
         :param interaction_input:   interaction features        (batch, time_step, input_size)
-        :param interaction_target:  interaction target feature  (batch, 1, input_size)
+        :param interaction_target:  interaction target feature  (batch, input_size)
         :return:
         """
 

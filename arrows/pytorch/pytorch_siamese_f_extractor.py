@@ -49,9 +49,6 @@ class pytorch_siamese_f_extractor(object):
 
     def _obtain_feature(self, bbox):
 
-        # center of bbox
-        center = tuple((bbox.center()))
-
         im = self._frame.crop((float(bbox.min_x()), float(bbox.min_y()),
                       float(bbox.max_x()), float(bbox.max_y())))
         im.show()

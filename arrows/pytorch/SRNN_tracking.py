@@ -55,10 +55,6 @@ from kwiver.arrows.pytorch.pytorch_siamese_f_extractor import pytorch_siamese_f_
 
 
 class SRNN_tracking(KwiverProcess):
-    """
-    This process gets an image as input, does some stuff to it and
-    sends the modified version to the output port.
-    """
 
     # ----------------------------------------------
     def __init__(self, conf):
@@ -67,29 +63,32 @@ class SRNN_tracking(KwiverProcess):
         self.add_config_trait("siamese_model_path", "siamese_model_path",
                               '/home/bdong/HiDive_project/tracking_the_untrackable/snapshot/siamese/snapshot_epoch_6.pt',
                               'Trained PyTorch model.')
+        self.declare_config_using_trait('siamese_model_path')
+
         self.add_config_trait("siamese_model_input_size", "siamese_model_input_size", '224',
                               'Model input image size')
+        self.declare_config_using_trait('siamese_model_input_size')
+
+        # detection select threshold
         self.add_config_trait("detection_select_threshold", "detection_select_threshold", '0.0',
                               'detection select threshold')
+        self.declare_config_using_trait('detection_select_threshold')
 
         # target RNN full model
         self.add_config_trait("targetRNN_full_model_path", "targetRNN_full_model_path",
                               '/home/bdong/HiDive_project/tracking_the_untrackable/snapshot/targetRNN_snapshot/App_LSTM_epoch_51.pt',
                               'Trained targetRNN PyTorch model.')
+        self.declare_config_using_trait('targetRNN_full_model_path')
 
         # target RNN AI model
         self.add_config_trait("targetRNN_AI_model_path", "targetRNN_AI_model_path",
                               '/home/bdong/HiDive_project/tracking_the_untrackable/snapshot/targetRNN_AI/App_LSTM_epoch_51.pt',
                               'Trained targetRNN AI PyTorch model.')
+        self.declare_config_using_trait('targetRNN_AI_model_path')
 
+        # matching similarity threshold
         self.add_config_trait("similarity_threshold", "similarity_threshold", '0.5',
                               'similarity threshold.')
-        
-        self.declare_config_using_trait('siamese_model_path')
-        self.declare_config_using_trait('siamese_model_input_size')
-        self.declare_config_using_trait('detection_select_threshold')
-        self.declare_config_using_trait('targetRNN_full_model_path')
-        self.declare_config_using_trait('targetRNN_AI_model_path')
         self.declare_config_using_trait('similarity_threshold')
 
         self._track_flag = False
@@ -140,7 +139,7 @@ class SRNN_tracking(KwiverProcess):
         in_img_c = self.grab_input_using_trait('image')
         dos_ptr = self.grab_input_using_trait('detected_object_set')
 
-        # Get image and resize
+        # Get current frame and give it to app feature extractor
         im = in_img_c.get_image().get_pil_image()
         self._app_feature_extractor.frame = im
 
