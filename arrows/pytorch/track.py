@@ -113,10 +113,10 @@ class track(object):
         if len(self._track_state_list) >= timestep_len:
             pass
         else:
-            du_track = track(self._track_id)
-            du_track.track_state_list = copy.deepcopy(self._track_state_list) 
+            du_track = copy.deepcopy(self) 
 
-            for i in range(timestep_len - len(du_track)):
+            cur_size = len(du_track)
+            for i in range(timestep_len - cur_size):
                 du_track.append(du_track[-1])
 
         return du_track

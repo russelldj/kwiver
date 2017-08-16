@@ -12,6 +12,7 @@ def get_config():
         A_F_num = 500  # appearance CNN output #Dim of feature
         I_F_num = 49
         M_F_num = 2
+        timeStep = 6
     return Config()
 
 g_config = get_config()
@@ -62,7 +63,6 @@ class AppearanceLSTM(nn.Module):
 
     # FIXME: we may need to add hidden status from previous
     def forward(self, track_input, target_input):
-
         target_out = self.target_fc(target_input)
         r_out, (h_t, c_t) = self.lstm(track_input, None)
 
@@ -202,6 +202,8 @@ class TargetLSTM(nn.Module):
 
         out_list = []
         if RnnType.Appearance in self.model_list:
+            print(appearance_input.size())
+            print(appearance_target.size())
             _, app_out = self.appearance(appearance_input, appearance_target)
             out_list.append(app_out)
 

@@ -1,5 +1,6 @@
 import torch
 from torch import nn
+from torch.autograd import Variable
 
 import numpy as np
 
@@ -90,9 +91,9 @@ class SRNN_matching(object):
                 motion_f_list = ts.motion_feature.reshape(1, g_config.M_F_num)
                 interaction_f_list = ts.interaction_feature.reshape(1, g_config.I_F_num)
             else:
-                np.append(app_f_list, ts.app_feature.reshape(1, g_config.A_F_num), axis=0)
-                np.append(motion_f_list, ts.motion_feature.reshape(1, g_config.M_F_num), axis=0)
-                np.append(interaction_f_list, ts.interaction_feature.reshape(1, g_config.I_F_num), axis=0)
+                app_f_list = np.append(app_f_list, ts.app_feature.reshape(1, g_config.A_F_num), axis=0)
+                motion_f_list = np.append(motion_f_list, ts.motion_feature.reshape(1, g_config.M_F_num), axis=0)
+                interaction_f_list = np.append(interaction_f_list, ts.interaction_feature.reshape(1, g_config.I_F_num), axis=0)
 
         app_target_f = track_state.app_feature.reshape(1, g_config.A_F_num)
         interaction_target_f = track_state.interaction_feature.reshape(1, g_config.I_F_num)
@@ -101,11 +102,14 @@ class SRNN_matching(object):
 
         # add batch dim
         app_f_list = np.reshape(app_f_list, (1, TIMESTEP_LEN, -1))
-        app_target_f = np.reshape(app_target_f, (1, 1, -1))
+        app_target_f = np.reshape(app_target_f, (1, -1))
         motion_f_list = np.reshape(motion_f_list, (1, TIMESTEP_LEN, -1))
-        motion_target_f = np.reshape(motion_target_f, (1, 1, -1))
+        motion_target_f = np.reshape(motion_target_f, (1, -1))
         interaction_f_list = np.reshape(interaction_f_list, (1, TIMESTEP_LEN, -1))
-        interaction_target_f = np.reshape(interaction_target_f, (1, 1, -1))
+        interaction_target_f = np.reshape(interaction_target_f, (1, -1))
 
-        return app_f_list, app_target_f, motion_f_list, motion_target_f, interaction_f_list, interaction_target_f
+        v_app_f_list, v_app_target_f = Variable(torch.from_numpy(app_f_list)).cuda(), Variable(torch.from_numpy(app_target_f)).cuda()
+        v_motion_f_list, v_motion_target_f = Variable(torch.from_numpy(motion_f_list)).cuda(), Variable(torch.from_numpy(motion_target_f)).cuda()
+        v_interaction_f_list, v_interaction_target_f = Variable(torch.from_numpy(interaction_f_list)).cuda(), Variable(torch.from_numpy(interaction_target_f)).cuda()
+        return v_app_f_list, v_app_target_f, v_motion_f_list, v_motion_target_f, v_interaction_f_list, v_interaction_target_f
 
