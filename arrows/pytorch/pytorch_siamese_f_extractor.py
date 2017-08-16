@@ -152,11 +152,11 @@ class pytorch_siamese_f_extractor(KwiverProcess):
 
         # Get detection bbox
         dos = dos_ptr.select(self._select_threshold)
-        print('bbox list len is {}'.format(len(dos)))
+        #print('bbox list len is {}'.format(len(dos)))
 
         # interaction features
         grid_feature_list = self._grid(im.size, dos)
-        print(grid_feature_list)
+        #print(grid_feature_list)
 
         track_state_list = []
         next_trackID = int(self._track_set.get_max_track_ID()) + 1
@@ -212,6 +212,7 @@ class pytorch_siamese_f_extractor(KwiverProcess):
                     # add to existing track
                     self._track_set.update_track(track_idx_list[ri], track_state_list[ci])
 
+        print(next_trackID)
 
         # push dummy detections object to output port
         # ts = track_Set()

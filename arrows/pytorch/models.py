@@ -202,8 +202,6 @@ class TargetLSTM(nn.Module):
 
         out_list = []
         if RnnType.Appearance in self.model_list:
-            print(appearance_input.size())
-            print(appearance_target.size())
             _, app_out = self.appearance(appearance_input, appearance_target)
             out_list.append(app_out)
 

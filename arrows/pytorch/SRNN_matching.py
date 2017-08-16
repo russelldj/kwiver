@@ -6,7 +6,6 @@ import numpy as np
 
 from kwiver.arrows.pytorch.models import TargetLSTM, get_config, RnnType
 
-TIMESTEP_LEN = 6
 g_config = get_config()
 
 class SRNN_matching(object):
@@ -47,9 +46,9 @@ class SRNN_matching(object):
             track_idx_list.append(cur_track.id)
             for ts in range(track_states_num):
 
-                if len(cur_track) < TIMESTEP_LEN:
+                if len(cur_track) < g_config.timeStep:
                     # if the track does not have enough track_state, we will duplicate to time-step, but only use app and interaction features
-                    temp_track = cur_track.duplicate_track_state(TIMESTEP_LEN)
+                    temp_track = cur_track.duplicate_track_state(g_config.timeStep)
                     similarity_mat[t, ts] = self._est_similarity(temp_track, track_state_list[ts], RnnType=RnnType.Target_RNN_AI)
                 else:
                     # if the track does have enough track states, we use the original targetRNN
@@ -58,7 +57,7 @@ class SRNN_matching(object):
         return similarity_mat, track_idx_list
 
     def _est_similarity(self, track, track_state, RnnType):
-        assert(len(track) >= TIMESTEP_LEN)
+        assert(len(track) >= g_config.timeStep)
 
         in_app_seq, in_app_target, in_motion_seq, in_motion_target, in_interaction_seq, in_interaction_target = \
             self._process_track(track, track_state)
@@ -85,7 +84,7 @@ class SRNN_matching(object):
 
     def _process_track(self, track, track_state):
 
-        for idx, ts in enumerate(track[-TIMESTEP_LEN:]):
+        for idx, ts in enumerate(track[-g_config.timeStep:]):
             if idx == 0:
                 app_f_list = ts.app_feature.reshape(1, g_config.A_F_num)
                 motion_f_list = ts.motion_feature.reshape(1, g_config.M_F_num)
@@ -102,11 +101,11 @@ class SRNN_matching(object):
 
         # add batch dim
         # TODO: loader may be simplier this part
-        app_f_list = np.reshape(app_f_list, (1, TIMESTEP_LEN, -1))
+        app_f_list = np.reshape(app_f_list, (1, g_config.timeStep, -1))
         app_target_f = np.reshape(app_target_f, (1, -1))
-        motion_f_list = np.reshape(motion_f_list, (1, TIMESTEP_LEN, -1))
+        motion_f_list = np.reshape(motion_f_list, (1, g_config.timeStep, -1))
         motion_target_f = np.reshape(motion_target_f, (1, -1))
-        interaction_f_list = np.reshape(interaction_f_list, (1, TIMESTEP_LEN, -1))
+        interaction_f_list = np.reshape(interaction_f_list, (1, g_config.timeStep, -1))
         interaction_target_f = np.reshape(interaction_target_f, (1, -1))
 
         v_app_f_list, v_app_target_f = Variable(torch.from_numpy(app_f_list)).cuda(), Variable(torch.from_numpy(app_target_f)).cuda()
