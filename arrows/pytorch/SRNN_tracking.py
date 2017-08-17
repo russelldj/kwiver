@@ -199,22 +199,34 @@ class SRNN_tracking(KwiverProcess):
         if self._track_flag is False:
             next_trackID = self._track_set.add_new_track_state_list(next_trackID, track_state_list)
             self._track_flag = True
+        else:
 
-        # estimate similarity matrix
-        similarity_mat, track_idx_list = self._SRNN_matching(self._track_set, track_state_list)
+            print('track_set len {}'.format(len(self._track_set)))
+            print('track_state_list len {}'.format(len(track_state_list)))
 
-        # Hungarian algorithm
-        row_idx, col_idx = sp.optimize.linear_sum_assignment(similarity_mat)
+            # estimate similarity matrix
+            similarity_mat, track_idx_list = self._SRNN_matching(self._track_set, track_state_list)
 
-        for ri in row_idx:
-            for ci in col_idx:
-                if -similarity_mat[ri, ci] < self._similarity_threshold:
+            # Hungarian algorithm
+            row_idx_list, col_idx_list = sp.optimize.linear_sum_assignment(similarity_mat)
+            
+            for i in range(len(row_idx_list)):
+                r = row_idx_list[i]
+                c = col_idx_list[i]
+
+                if -similarity_mat[r, c] < self._similarity_threshold:
                     # initialize a new track
-                    self._track_set.add_new_track_state(next_trackID, track_state_list[ci])
+                    self._track_set.add_new_track_state(next_trackID, track_state_list[c])
                     next_trackID += 1
                 else:
                     # add to existing track
-                    self._track_set.update_track(track_idx_list[ri], track_state_list[ci])
+                    self._track_set.update_track(track_idx_list[r], track_state_list[c])
+            
+            if len(track_state_list) - len(col_idx_list) > 0:
+                for i in range(len(track_state_list)):
+                    if i not in col_idx_list:
+                        self._track_set.add_new_track_state(next_trackID, track_state_list[i])
+                        next_trackID += 1
 
         print('total tracks {}'.format(len(self._track_set)))
         # push dummy detections object to output port

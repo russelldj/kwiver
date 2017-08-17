@@ -51,7 +51,7 @@ class pytorch_siamese_f_extractor(object):
 
         im = self._frame.crop((float(bbox.min_x()), float(bbox.min_y()),
                       float(bbox.max_x()), float(bbox.max_y())))
-        im.show()
+        #im.show()
 
         # resize cropped image
         im = im.resize((self._img_size, self._img_size), pilImage.BILINEAR)
