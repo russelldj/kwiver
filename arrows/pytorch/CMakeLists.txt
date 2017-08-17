@@ -33,4 +33,7 @@ if( KWIVER_ENABLE_PYTHON )
     kwiver/arrows/pytorch
 	SRNN_matching)
 
+  kwiver_add_python_module(${CMAKE_CURRENT_SOURCE_DIR}/MOT_bbox.py
+    kwiver/arrows/pytorch
+	MOT_bbox)
 endif()

@@ -30,6 +30,12 @@ class MOT_bbox(object):
         bb_list = []
         
         for item in bb_info:
-            bb_list.append(BoundingBox((item[1], itme[2]), item[3], item[4]))
+            x = float(item[1])
+            y = float(item[2])
+            w = float(item[3])
+            h = float(item[4])
+
+            bb_list.append(BoundingBox(x, y, x + w, y + h))
 
         return bb_list
+

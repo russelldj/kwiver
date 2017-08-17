@@ -132,7 +132,6 @@ class MotionLSTM(nn.Module):
         self.relu = nn.ReLU()
 
     def forward(self, track_input, target_input):
-
         target_out = self.target_fc(target_input)
         r_out, (h_t, c_t) = self.lstm(track_input, None)
 

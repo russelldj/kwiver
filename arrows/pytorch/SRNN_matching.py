@@ -109,7 +109,7 @@ class SRNN_matching(object):
         interaction_target_f = np.reshape(interaction_target_f, (1, -1))
 
         v_app_f_list, v_app_target_f = Variable(torch.from_numpy(app_f_list)).cuda(), Variable(torch.from_numpy(app_target_f)).cuda()
-        v_motion_f_list, v_motion_target_f = Variable(torch.from_numpy(motion_f_list)).cuda(), Variable(torch.from_numpy(motion_target_f)).cuda()
+        v_motion_f_list, v_motion_target_f = Variable(torch.from_numpy(motion_f_list)).float().cuda(), Variable(torch.from_numpy(motion_target_f)).float().cuda()
         v_interaction_f_list, v_interaction_target_f = Variable(torch.from_numpy(interaction_f_list)).cuda(), Variable(torch.from_numpy(interaction_target_f)).cuda()
 
         return v_app_f_list, v_app_target_f, v_motion_f_list, v_motion_target_f, v_interaction_f_list, v_interaction_target_f

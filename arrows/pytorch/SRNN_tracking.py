@@ -53,6 +53,8 @@ from kwiver.arrows.pytorch.track import track_state, track, track_set
 from kwiver.arrows.pytorch.SRNN_matching import SRNN_matching, RnnType
 from kwiver.arrows.pytorch.pytorch_siamese_f_extractor import pytorch_siamese_f_extractor
 
+from kwiver.arrows.pytorch.MOT_bbox import MOT_bbox
+
 
 class SRNN_tracking(KwiverProcess):
 
@@ -91,8 +93,18 @@ class SRNN_tracking(KwiverProcess):
                               'similarity threshold.')
         self.declare_config_using_trait('similarity_threshold')
 
+        # MOT gt detection
+        #-------------------------------------------------------------------
+        self.add_config_trait("MOT_Testing_flag", "MOT_Testing_flag", 'False', 'MOT testing flag')
+        self.declare_config_using_trait('MOT_Testing_flag')
+        
+        self.add_config_trait("MOT_GT_det_file_path", "MOT_GT_det_file_path", 
+                             '', 'MOT ground truth detection file targetRNN_full_model_path for testing')
+        self.declare_config_using_trait('MOT_GT_det_file_path')
+        #-------------------------------------------------------------------
+
         self._track_flag = False
-        self._step_id = 0
+        self._step_id = 1
 
         # set up required flags
         optional = process.PortFlags()
@@ -122,6 +134,13 @@ class SRNN_tracking(KwiverProcess):
         targetRNN_AI_model_path = self.config_value('targetRNN_AI_model_path')
         self._SRNN_matching = SRNN_matching(targetRNN_full_model_path, targetRNN_AI_model_path)
 
+        # MOT related
+        MOT_file_path = self.config_value('MOT_GT_det_file_path')
+        self._m_bbox = MOT_bbox(MOT_file_path)
+
+        MOT_flag = self.config_value('MOT_Testing_flag')
+        self._mot_flag = (MOT_flag == 'True')
+
         self._similarity_threshold = float(self.config_value('similarity_threshold'))
         self._grid = grid()
 
@@ -133,7 +152,6 @@ class SRNN_tracking(KwiverProcess):
     # ----------------------------------------------
     def _step(self):
         print('step {}'.format(self._step_id))
-        self._step_id += 1
 
         # grab image container from port using traits
         in_img_c = self.grab_input_using_trait('image')
@@ -143,12 +161,16 @@ class SRNN_tracking(KwiverProcess):
         im = in_img_c.get_image().get_pil_image()
         self._app_feature_extractor.frame = im
 
+        # TODO: replace the dos with MOT ground truth bbox for testing
         # Get detection bbox
-        dos = dos_ptr.select(self._select_threshold)
+        if self._mot_flag is True:
+            dos = self._m_bbox[self._step_id] 
+        else:
+            dos = dos_ptr.select(self._select_threshold)
         #print('bbox list len is {}'.format(len(dos)))
 
         # interaction features
-        grid_feature_list = self._grid(im.size, dos)
+        grid_feature_list = self._grid(im.size, dos, self._mot_flag)
         #print(grid_feature_list)
 
         track_state_list = []
@@ -156,7 +178,10 @@ class SRNN_tracking(KwiverProcess):
         
         # get new track state from new frame and detections
         for idx, item in enumerate(dos):
-            bbox = item.bounding_box()
+            if self._mot_flag is True:
+                bbox = item
+            else:
+                bbox = item.bounding_box()
 
             # center of bbox
             center = tuple((bbox.center()))
@@ -195,6 +220,8 @@ class SRNN_tracking(KwiverProcess):
         # push dummy detections object to output port
         # ts = track_Set()
         #self.push_to_port_using_trait('object_track_set', ts)
+
+        self._step_id += 1
 
         self._base_step()
 

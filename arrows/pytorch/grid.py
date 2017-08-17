@@ -8,8 +8,8 @@ class grid(object):
         self._target_neighborhood_w = target_neighborhood_w
         self._half_cell_w = int(self._target_neighborhood_w // 2)
 
-    def __call__(self, im_size ,bbox_list):
-        return self.obtainGridFeatureList(im_size, bbox_list)
+    def __call__(self, im_size ,bbox_list, MOT_flag=False):
+        return self.obtainGridFeatureList(im_size, bbox_list, MOT_flag)
 
     @property
     def img_h(self):
@@ -28,7 +28,7 @@ class grid(object):
         self._img_w = val
     
     # for python 2, it seems it cannot read the setter
-    def obtainGridFeatureList(self, im_size, bbox_list):
+    def obtainGridFeatureList(self, im_size, bbox_list, MOT_flag):
         r"""
             The output of the function is a grid feature list for each corresponding bbox of current frame/image
         """
@@ -44,8 +44,11 @@ class grid(object):
         bbox_id_centerIDX = {}
         # build the grid for current image
         for idx, item in enumerate(bbox_list):
+            if MOT_flag is True:
+                bb = item
+            else:
+                bb = item.bounding_box()
 
-            bb = item.bounding_box()
             x, y, w, h = int(bb.min_x()), int(bb.min_y()), int(bb.width()), int(bb.height())
 
             # bbox center
