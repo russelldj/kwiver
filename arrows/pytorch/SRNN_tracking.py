@@ -197,7 +197,7 @@ class SRNN_tracking(KwiverProcess):
         
         # if there is no tracks, generate new tracks from the track_state_list
         if self._track_flag is False:
-            self._track_set.add_new_track_state_list(next_trackID, track_state_list)
+            next_trackID = self._track_set.add_new_track_state_list(next_trackID, track_state_list)
             self._track_flag = True
 
         # estimate similarity matrix
@@ -216,7 +216,7 @@ class SRNN_tracking(KwiverProcess):
                     # add to existing track
                     self._track_set.update_track(track_idx_list[ri], track_state_list[ci])
 
-
+        print('total tracks {}'.format(len(self._track_set)))
         # push dummy detections object to output port
         # ts = track_Set()
         #self.push_to_port_using_trait('object_track_set', ts)

@@ -185,6 +185,7 @@ class track_set(object):
                 raise RuntimeError
             
             self.add_new_track_state(cur_track_id, ts_list[i])
+        return start_track_id + len(ts_list)
 
     def update_track(self, track_id, new_track_state):
         if track_id not in self._id_ts_dict:

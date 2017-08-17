@@ -13,7 +13,7 @@ class MOT_bbox(object):
         with open(gt_file_path, 'r') as f:
             for line in f:
                 cur_line_list = line.rstrip('\n').split(',')
-                if bool(frame_track_dict.get(cur_line_list[0])):
+                if bool(frame_track_dict.get(int(cur_line_list[0]))):
                     frame_track_dict[int(cur_line_list[0])].extend([tuple(cur_line_list[1:6])])
                 else:
                     frame_track_dict[int(cur_line_list[0])] = [tuple(cur_line_list[1:6])]
