@@ -222,6 +222,7 @@ class SRNN_tracking(KwiverProcess):
                     # add to existing track
                     self._track_set.update_track(track_idx_list[r], track_state_list[c])
             
+            # for rest unmatched track_state, we initialize new tracks
             if len(track_state_list) - len(col_idx_list) > 0:
                 for i in range(len(track_state_list)):
                     if i not in col_idx_list:
