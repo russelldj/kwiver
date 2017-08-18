@@ -1,5 +1,5 @@
 /*ckwg +29
- * Copyright 2011-2015 by Kitware, Inc.
+ * Copyright 2017 by Kitware, Inc.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,46 +30,66 @@
 
 /**
  * \file
- * \brief test support functions involving generic math
+ * \brief This file contains the implementation of iqr feedback
  */
 
-#ifndef KWIVER_TEST_MATH_H_
-#define KWIVER_TEST_MATH_H_
-
-#include <cmath>
-
-#include <Eigen/Core>
-
+#include "iqr_feedback.h"
 
 namespace kwiver {
-namespace testing {
+namespace vital {
 
-
-/// Near comparison function for vectors
-/**
- * Drop-in compatible with TEST_NEAR. Just need to include this header.
- */
-template < typename T, int M, int N >
-bool
-is_almost( Eigen::Matrix< T, M, N > const& a,
-           Eigen::Matrix< T, M, N > const& b,
-           double const& epsilon )
+// ----------------------------------------------------------------------------
+iqr_feedback
+::iqr_feedback()
 {
-  for ( unsigned i = 0; i < M; ++i )
-  {
-    for ( unsigned j = 0; j < N; ++j )
-    {
-      if ( fabs( a( i, j ) - b( i, j ) ) > epsilon )
-      {
-        return false;
-      }
-    }
-  }
-  return true;
 }
 
-
+// ----------------------------------------------------------------------------
+uid
+iqr_feedback
+::query_id() const
+{
+  return m_query_id;
 }
+
+// ----------------------------------------------------------------------------
+void
+iqr_feedback
+::set_query_id( uid const& id )
+{
+  m_query_id = id;
 }
 
-#endif // KWIVER_TEST_MATH_H_
+// ----------------------------------------------------------------------------
+std::vector< unsigned > const&
+iqr_feedback
+::positive_ids() const
+{
+  return m_positive_ids;
+}
+
+// ----------------------------------------------------------------------------
+void
+iqr_feedback
+::set_positive_ids( std::vector< unsigned > const& ids )
+{
+  m_positive_ids = ids;
+}
+
+// ----------------------------------------------------------------------------
+std::vector< unsigned > const&
+iqr_feedback
+::negative_ids() const
+{
+  return m_negative_ids;
+}
+
+// ----------------------------------------------------------------------------
+void
+iqr_feedback
+::set_negative_ids( std::vector< unsigned > const& ids )
+{
+  m_negative_ids = ids;
+}
+
+} } // end namespace

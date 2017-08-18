@@ -1,5 +1,5 @@
 /*ckwg +29
- * Copyright 2011-2014 by Kitware, Inc.
+ * Copyright 2017 by Kitware, Inc.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -16,7 +16,7 @@
  *    to endorse or promote products derived from this software without specific
  *    prior written permission.
  *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS ``AS IS''
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
  * ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHORS OR CONTRIBUTORS BE LIABLE FOR
@@ -28,54 +28,52 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/**
- * \file
- *
- * \brief Functions for creating test points with added random Gaussian noise.
- *
- */
+#ifndef _KWIVER_COMPUTE_TRACK_DESCRIPTORS_PROCESS_H_
+#define _KWIVER_COMPUTE_TRACK_DESCRIPTORS_PROCESS_H_
 
-#ifndef KWIVER_TEST_TEST_RANDOM_POINT_H_
-#define KWIVER_TEST_TEST_RANDOM_POINT_H_
+#include "kwiver_processes_export.h"
 
-#include <vital/vector.h>
-#include <random>
+#include <sprokit/pipeline/process.h>
+
+#include <memory>
 
 namespace kwiver
 {
 
-namespace testing
+// -----------------------------------------------------------------------------
+/**
+ * \class compute_track_descriptors_process
+ *
+ * \brief Computes track descriptors along object tracks or object detections.
+ *
+ * \iports
+ * \iport{timestamp}
+ * \iport{image}
+ * \iport{tracks}
+ * \iport{detections}
+ *
+ * \oports
+ * \oport{track_descriptor_set}
+ */
+class KWIVER_PROCESSES_NO_EXPORT compute_track_descriptors_process
+  : public sprokit::process
 {
+  public:
+  compute_track_descriptors_process( vital::config_block_sptr const& config );
+  virtual ~compute_track_descriptors_process();
 
-/// random number generator type
-typedef std::mt19937 rng_t;
-/// normal distribution
-typedef std::normal_distribution<> norm_dist_t;
-/// normal distribution random generator type
-typedef std::variate_generator<rng_t&, norm_dist_t> normal_gen_t;
+  protected:
+    virtual void _configure();
+    virtual void _step();
 
-/// a global random number generator instance
-static rng_t rng;
+  private:
+    void make_ports();
+    void make_config();
 
-
-inline
-  kwiver::vital::vector_3d random_point3d(double stdev)
-{
-  normal_gen_t norm(rng, norm_dist_t(0.0, stdev));
-  kwiver::vital::vector_3d v(norm(), norm(), norm());
-  return v;
-}
+    class priv;
+    const std::unique_ptr<priv> d;
+ }; // end class compute_track_descriptors_process
 
 
-inline
-  kwiver::vital::vector_2d random_point2d(double stdev)
-{
-  normal_gen_t norm(rng, norm_dist_t(0.0, stdev));
-  kwiver::vital::vector_2d v(norm(), norm());
-  return v;
-}
-
-} // end namespace testing
-} // end namespace kwiver
-
-#endif // KWIVER_TEST_TEST_RANDOM_POINT_H_
+} // end namespace
+#endif /* _KWIVER_COMPUTE_TRACK_DESCRIPTORS_PROCESS_H_ */

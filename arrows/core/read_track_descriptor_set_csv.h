@@ -1,5 +1,5 @@
 /*ckwg +29
- * Copyright 2011, 2013-2014 by Kitware, Inc.
+ * Copyright 2017 by Kitware, Inc.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -16,7 +16,7 @@
  *    to endorse or promote products derived from this software without specific
  *    prior written permission.
  *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS ``AS IS''
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
  * ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHORS OR CONTRIBUTORS BE LIABLE FOR
@@ -28,29 +28,43 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SPROKIT_PROCESSES_EXAMPLES_EXAMPLES_CONFIG_H
-#define SPROKIT_PROCESSES_EXAMPLES_EXAMPLES_CONFIG_H
-
-#include <sprokit/config.h>
-
 /**
- * \file examples-config.h
- *
- * \brief Defines for symbol visibility in example processes.
+ * \file
+ * \brief Interface for read_track_descriptor_set_csv
  */
 
-#ifdef MAKE_SPROKIT_PROCESSES_EXAMPLES_LIB
-/// Export the symbol if building the library.
-#define SPROKIT_PROCESSES_EXAMPLES_EXPORT SPROKIT_EXPORT
-#else
-/// Import the symbol if including the library.
-#define SPROKIT_PROCESSES_EXAMPLES_EXPORT SPROKIT_IMPORT
-#endif
+#ifndef KWIVER_ARROWS_TRACK_DESCRIPTOR_SET_OUTPUT_CSV_H
+#define KWIVER_ARROWS_TRACK_DESCRIPTOR_SET_OUTPUT_CSV_H
 
-/// Hide the symbol from the library interface.
-#define SPROKIT_PROCESSES_EXAMPLES_NO_EXPORT SPROKIT_NO_EXPORT
+#include <vital/vital_config.h>
+#include <arrows/core/kwiver_algo_core_export.h>
 
-/// Mark as deprecated.
-#define SPROKIT_PROCESSES_EXAMPLES_EXPORT_DEPRECATED SPROKIT_DEPRECATED SPROKIT_PROCESSES_EXAMPLES_EXPORT
+#include <vital/algo/read_track_descriptor_set.h>
 
-#endif // SPROKIT_PROCESSES_EXAMPLES_EXAMPLES_CONFIG_H
+#include <memory>
+
+namespace kwiver {
+namespace arrows {
+namespace core {
+
+class KWIVER_ALGO_CORE_EXPORT read_track_descriptor_set_csv
+  : public vital::algorithm_impl< read_track_descriptor_set_csv,
+      vital::algo::read_track_descriptor_set >
+{
+public:
+  read_track_descriptor_set_csv();
+  virtual ~read_track_descriptor_set_csv();
+
+  virtual void set_configuration( vital::config_block_sptr config );
+  virtual bool check_configuration( vital::config_block_sptr config ) const;
+
+  virtual bool read_set( kwiver::vital::track_descriptor_set_sptr& set );
+
+private:
+  class priv;
+  std::unique_ptr< priv > d;
+};
+
+} } } // end namespace
+
+#endif // KWIVER_ARROWS_TRACK_DESCRIPTOR_SET_OUTPUT_CSV_H

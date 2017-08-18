@@ -1,5 +1,5 @@
 /*ckwg +29
- * Copyright 2011, 2013-2014 by Kitware, Inc.
+ * Copyright 2016-2017 by Kitware, Inc.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,29 +28,38 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SPROKIT_PROCESSES_FLOW_FLOW_CONFIG_H
-#define SPROKIT_PROCESSES_FLOW_FLOW_CONFIG_H
+#include <vital/algo/algorithm.txx>
 
-#include <sprokit/config.h>
+#include "handle_descriptor_request.h"
 
-/**
- * \file flow-config.h
- *
- * \brief Defines for symbol visibility in the flow processes.
- */
+INSTANTIATE_ALGORITHM_DEF( kwiver::vital::algo::handle_descriptor_request );
 
-#ifdef MAKE_SPROKIT_PROCESSES_FLOW_LIB
-/// Export the symbol if building the library.
-#define SPROKIT_PROCESSES_FLOW_EXPORT SPROKIT_EXPORT
-#else
-/// Import the symbol if including the library.
-#define SPROKIT_PROCESSES_FLOW_EXPORT SPROKIT_IMPORT
-#endif
+namespace kwiver {
+namespace vital {
+namespace algo {
 
-/// Hide the symbol from the library interface.
-#define SPROKIT_PROCESSES_FLOW_NO_EXPORT SPROKIT_NO_EXPORT
+handle_descriptor_request
+::handle_descriptor_request()
+{
+  attach_logger( "handle_descriptor_request" );
+}
 
-/// Mark as deprecated.
-#define SPROKIT_PROCESSES_FLOW_EXPORT_DEPRECATED SPROKIT_DEPRECATED SPROKIT_PROCESSES_FLOW_EXPORT
 
-#endif // SPROKIT_PROCESSES_FLOW_FLOW_CONFIG_H
+/// Set this algorithm's properties via a config block
+void
+handle_descriptor_request
+::set_configuration( kwiver::vital::config_block_sptr config )
+{
+  (void) config;
+}
+
+/// Check that the algorithm's current configuration is valid
+bool
+handle_descriptor_request
+::check_configuration( kwiver::vital::config_block_sptr config ) const
+{
+  (void) config;
+  return true;
+}
+
+} } } // end namespace

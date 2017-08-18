@@ -16,6 +16,8 @@ set( burnout_linked_libs
   ${Boost_FILESYSTEM_LIBRARY}
   kwiver_algo_ocv )
 
+include_directories( SYSTEM ${VIDTK_INCLUDE_DIRS} )
+
 kwiver_install_headers(
   SUBDIR     arrows/burnout
   ${headers}
@@ -33,6 +35,7 @@ kwiver_add_library( kwiver_algo_burnout
 target_link_libraries( kwiver_algo_burnout
   PUBLIC               vital_algo
   PRIVATE              ${burnout_linked_libs}
+                       vil vidtk_descriptor
   )
 
 algorithms_create_plugin( kwiver_algo_burnout

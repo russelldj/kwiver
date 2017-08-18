@@ -18,16 +18,17 @@ set( plugin_core_headers
   estimate_canonical_transform.h
   feature_descriptor_io.h
   filter_features_magnitude.h
-  formulate_query_core.h
   filter_features_scale.h
   filter_tracks.h
+  handle_descriptor_request_core.h
   hierarchical_bundle_adjust.h
   initialize_cameras_landmarks.h
   initialize_object_tracks_threshold.h
   match_features_fundamental_matrix.h
   match_features_homography.h
-  track_descriptor_set_output_csv.h
   merge_tracks.h
+  read_object_track_set_kw18.h
+  read_track_descriptor_set_csv.h
   track_features_core.h
   transform.h
   triangulate_landmarks.h
@@ -35,6 +36,8 @@ set( plugin_core_headers
   video_input_image_list.h
   video_input_pos.h
   video_input_split.h
+  write_object_track_set_kw18.h
+  write_track_descriptor_set_csv.h
 
   epipolar_geometry.h
   interpolate_camera.h
@@ -76,16 +79,17 @@ set( plugin_core_sources
   estimate_canonical_transform.cxx
   feature_descriptor_io.cxx
   filter_features_magnitude.cxx
-  formulate_query_core.cxx
   filter_features_scale.cxx
   filter_tracks.cxx
+  handle_descriptor_request_core.cxx
   hierarchical_bundle_adjust.cxx
   initialize_cameras_landmarks.cxx
   initialize_object_tracks_threshold.cxx
   match_features_fundamental_matrix.cxx
   match_features_homography.cxx
-  track_descriptor_set_output_csv.cxx
   merge_tracks.cxx
+  read_object_track_set_kw18.cxx
+  read_track_descriptor_set_csv.cxx
   track_features_core.cxx
   transform.cxx
   triangulate_landmarks.cxx
@@ -93,6 +97,8 @@ set( plugin_core_sources
   video_input_image_list.cxx
   video_input_pos.cxx
   video_input_split.cxx
+  write_object_track_set_kw18.cxx
+  write_track_descriptor_set_csv.cxx
 
   epipolar_geometry.cxx
   interpolate_camera.cxx

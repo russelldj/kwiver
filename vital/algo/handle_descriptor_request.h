@@ -1,5 +1,5 @@
 /*ckwg +29
- * Copyright 2017 by Kitware, Inc.
+ * Copyright 2016-2017 by Kitware, Inc.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -16,7 +16,7 @@
  *    to endorse or promote products derived from this software without specific
  *    prior written permission.
  *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS ``AS IS''
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
  * ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHORS OR CONTRIBUTORS BE LIABLE FOR
@@ -28,55 +28,49 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/**
- * \file
- * \brief Interface for track_descriptor_set_input process
- */
+#ifndef VITAL_ALGO_FORMULATE_QUERY_H_
+#define VITAL_ALGO_FORMULATE_QUERY_H_
 
-#ifndef _KWIVER_TRACK_DESCRIPTOR_INPUT_PROCESS_H
-#define _KWIVER_TRACK_DESCRIPTOR_INPUT_PROCESS_H
+#include <vital/vital_config.h>
 
-#include <sprokit/pipeline/process.h>
-
-#include "kwiver_processes_export.h"
-
+#include <string>
 #include <memory>
 
-namespace kwiver
-{
+#include <vital/algo/algorithm.h>
+#include <vital/types/image_container.h>
+#include <vital/types/track_descriptor_set.h>
+#include <vital/types/descriptor_request.h>
 
-  // ----------------------------------------------------------------
-/**
- * \class track_descriptor_input_process
- *
- * \brief Reads a series of images
- *
- * \iports
- * \iport{image_name}
- * \iport{track descriptor_set}
- *
- */
-class KWIVER_PROCESSES_NO_EXPORT track_descriptor_input_process
-  : public sprokit::process
+namespace kwiver {
+namespace vital {
+namespace algo {
+
+/// An abstract base class for formulating descriptors for queries
+class VITAL_ALGO_EXPORT handle_descriptor_request
+  : public kwiver::vital::algorithm_def<handle_descriptor_request>
 {
 public:
-  track_descriptor_input_process( kwiver::vital::config_block_sptr const& config );
-  virtual ~track_descriptor_input_process();
+  /// Return the name of this algorithm
+  static std::string static_type_name() { return "handle_descriptor_request"; }
+
+  /// Set this algorithm's properties via a config block
+  virtual void set_configuration( kwiver::vital::config_block_sptr config );
+  /// Check that the algorithm's currently configuration is valid
+  virtual bool check_configuration( kwiver::vital::config_block_sptr config ) const;
+
+  /// Formulate query
+  virtual bool handle(
+    kwiver::vital::descriptor_request_sptr request,
+    kwiver::vital::track_descriptor_set_sptr& desc,
+    std::vector< kwiver::vital::image_container_sptr >& imgs ) = 0;
 
 protected:
-  virtual void _configure();
-  virtual void _init();
-  virtual void _step();
+  handle_descriptor_request();
 
-private:
-  void make_ports();
-  void make_config();
+};
 
-  class priv;
-  const std::unique_ptr<priv> d;
-}; // end class track_descriptor_input_process
+typedef std::shared_ptr<handle_descriptor_request> handle_descriptor_request_sptr;
 
+} } } // end namespace
 
-} // end namespace
-
-#endif // _KWIVER_TRACK_DESCRIPTOR_INPUT_PROCESS_H
+#endif // VITAL_ALGO_CONVERT_IMAGE_H_
