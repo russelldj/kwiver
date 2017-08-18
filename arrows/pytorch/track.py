@@ -1,8 +1,9 @@
 import numpy as np
 import copy
+from vital.types import DetectedObject
 
 class track_state(object):
-    def __init__(self, bbox_center, interaction_feature, app_feature, bbox):
+    def __init__(self, bbox_center, interaction_feature, app_feature, bbox, detectedObject):
         self._bbox_center = bbox_center
 
         '''a list [x, y, w, h]'''
@@ -14,6 +15,8 @@ class track_state(object):
 
         self._track_id = -1
         self._frame_id = -1
+        
+        self._detectedObj = detectedObject
 
     @property
     def bbox(self):
@@ -72,6 +75,13 @@ class track_state(object):
     def frame_id(self, val):
         self._frame_id = val
 
+    @property
+    def detectedObj(self):
+        return self._detectedObj
+
+    @detectedObj.setter
+    def detectedObj(self, val):
+        self._detectedObj = val
 
 class track(object):
     def __init__(self, id):
@@ -117,14 +127,17 @@ class track(object):
             pre_bbox_center = np.asarray(self._track_state_list[-1].bbox_center).reshape(1, 2)
             cur_bbox_center = np.asarray(new_track_state.bbox_center).reshape(1, 2)
             new_track_state._motion_feature = cur_bbox_center - pre_bbox_center
-
+        
+        new_track_state.track_id = self._track_id
         self._track_state_list.append(new_track_state)
 
     def duplicate_track_state(self, timestep_len = 6):
         if len(self._track_state_list) >= timestep_len:
             pass
         else:
-            du_track = copy.deepcopy(self) 
+            #du_track = copy.deepcopy(self)  
+            du_track = track(self._track_id)  
+            du_track.track_state_list = self._track_state_list
 
             cur_size = len(du_track)
             for i in range(timestep_len - cur_size):
@@ -144,6 +157,10 @@ class track_set(object):
         if idx >= len(self._id_ts_dict):
             raise IndexError
         return self._id_ts_dict.items()[idx][1]
+
+    def __iter__(self):
+        for _, item in self._id_ts_dict.items():
+            yield item
 
     def get_track(self, track_id):
         if track_id not in self._id_ts_dict:

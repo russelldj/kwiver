@@ -47,6 +47,12 @@ from vital.types import Image
 from vital.types import DetectedObject
 from vital.types import DetectedObjectSet
 
+from vital.types import ( 
+    ObjectTrackState,
+    Track,
+    ObjectTrackSet
+)
+
 from kwiver.arrows.pytorch.models import Siamese
 from kwiver.arrows.pytorch.grid import grid
 from kwiver.arrows.pytorch.track import track_state, track, track_set
@@ -54,6 +60,18 @@ from kwiver.arrows.pytorch.SRNN_matching import SRNN_matching, RnnType
 from kwiver.arrows.pytorch.pytorch_siamese_f_extractor import pytorch_siamese_f_extractor
 
 from kwiver.arrows.pytorch.MOT_bbox import MOT_bbox
+
+def ts2ot_list(track_set):
+    ot_list = []
+    
+    for t in track_set:
+        ot = Track(t.id)
+        for i in range(len(t)):
+            ot_state = ObjectTrackState(t[i].frame_id, t[i].detectedObj)
+            ot.append(ot_state)
+        ot_list.append(ot)
+
+    return ot_list
 
 
 class SRNN_tracking(KwiverProcess):
@@ -180,8 +198,10 @@ class SRNN_tracking(KwiverProcess):
         for idx, item in enumerate(dos):
             if self._mot_flag is True:
                 bbox = item
+                d_obj = DetectedObject(bbox=item, confid=1.0)
             else:
                 bbox = item.bounding_box()
+                d_obj = item
 
             # center of bbox
             center = tuple((bbox.center()))
@@ -192,9 +212,10 @@ class SRNN_tracking(KwiverProcess):
             # build track state for current bbox for matching
             cur_ts = track_state(bbox_center=center, interaction_feature=grid_feature_list[idx],
                                  app_feature=app_feature, bbox=[int(bbox.min_x()), int(bbox.min_y()), 
-                                                                int(bbox.width()), int(bbox.height())])
+                                                                int(bbox.width()), int(bbox.height())],
+                                 detectedObject=d_obj)
             track_state_list.append(cur_ts)
-        
+            
         # if there is no tracks, generate new tracks from the track_state_list
         if self._track_flag is False:
             next_trackID = self._track_set.add_new_track_state_list(next_trackID, track_state_list)
@@ -230,9 +251,12 @@ class SRNN_tracking(KwiverProcess):
                         next_trackID += 1
 
         print('total tracks {}'.format(len(self._track_set)))
-        # push dummy detections object to output port
-        # ts = track_Set()
-        #self.push_to_port_using_trait('object_track_set', ts)
+
+
+        # push track set to output port
+        ot_list = ts2ot_list(self._track_set)
+        ots = ObjectTrackSet(ot_list)
+        self.push_to_port_using_trait('object_track_set', ots)
 
         self._step_id += 1
 
