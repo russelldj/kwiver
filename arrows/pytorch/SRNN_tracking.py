@@ -70,10 +70,7 @@ def ts2ot_list(track_set):
     for idx, t in enumerate(track_set):
         for i in range(len(t)):
             ot_state = ObjectTrackState(t[i].frame_id, t[i].detectedObj)
-            print('track[{}] frame_id {}'.format(i, t[i].frame_id))
-            if ot_list[idx].append(ot_state):
-                pass
-            else:
+            if not ot_list[idx].append(ot_state):
                 print('cannot add ObjectTrackState')
                 exit(1)
 
@@ -258,18 +255,10 @@ class SRNN_tracking(KwiverProcess):
 
         print('total tracks {}'.format(len(self._track_set)))
 
-        for idx, item in enumerate(self._track_set):
-            print('track {}: {} tracks'.format(idx, len(item)))
-
-
         # push track set to output port
         ot_list = ts2ot_list(self._track_set)
         ots = ObjectTrackSet(ot_list)
 
-        for idx, item in enumerate(ot_list):
-            print('ot list {}: {} tracks'.format(idx, len(item)))
-
-        
         self.push_to_port_using_trait('object_track_set', ots)
 
         self._step_id += 1
