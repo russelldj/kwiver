@@ -62,14 +62,20 @@ from kwiver.arrows.pytorch.pytorch_siamese_f_extractor import pytorch_siamese_f_
 from kwiver.arrows.pytorch.MOT_bbox import MOT_bbox
 
 def ts2ot_list(track_set):
-    ot_list = []
-    
+    ot_list = [] 
     for t in track_set:
-        ot = Track(t.id)
+        ot = Track(id=t.id)
+        ot_list.append(ot)
+
+    for idx, t in enumerate(track_set):
         for i in range(len(t)):
             ot_state = ObjectTrackState(t[i].frame_id, t[i].detectedObj)
-            ot.append(ot_state)
-        ot_list.append(ot)
+            print('track[{}] frame_id {}'.format(i, t[i].frame_id))
+            if ot_list[idx].append(ot_state):
+                pass
+            else:
+                print('cannot add ObjectTrackState')
+                exit(1)
 
     return ot_list
 
@@ -198,7 +204,7 @@ class SRNN_tracking(KwiverProcess):
         for idx, item in enumerate(dos):
             if self._mot_flag is True:
                 bbox = item
-                d_obj = DetectedObject(bbox=item, confid=1.0)
+                d_obj = DetectedObject(bbox=item , confid=1.0)
             else:
                 bbox = item.bounding_box()
                 d_obj = item
@@ -210,7 +216,7 @@ class SRNN_tracking(KwiverProcess):
             app_feature = self._app_feature_extractor(bbox)
 
             # build track state for current bbox for matching
-            cur_ts = track_state(bbox_center=center, interaction_feature=grid_feature_list[idx],
+            cur_ts = track_state(frame_id=self._step_id, bbox_center=center, interaction_feature=grid_feature_list[idx],
                                  app_feature=app_feature, bbox=[int(bbox.min_x()), int(bbox.min_y()), 
                                                                 int(bbox.width()), int(bbox.height())],
                                  detectedObject=d_obj)
@@ -252,10 +258,18 @@ class SRNN_tracking(KwiverProcess):
 
         print('total tracks {}'.format(len(self._track_set)))
 
+        for idx, item in enumerate(self._track_set):
+            print('track {}: {} tracks'.format(idx, len(item)))
+
 
         # push track set to output port
         ot_list = ts2ot_list(self._track_set)
         ots = ObjectTrackSet(ot_list)
+
+        for idx, item in enumerate(ot_list):
+            print('ot list {}: {} tracks'.format(idx, len(item)))
+
+        
         self.push_to_port_using_trait('object_track_set', ots)
 
         self._step_id += 1

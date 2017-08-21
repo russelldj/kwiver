@@ -3,7 +3,7 @@ import copy
 from vital.types import DetectedObject
 
 class track_state(object):
-    def __init__(self, bbox_center, interaction_feature, app_feature, bbox, detectedObject):
+    def __init__(self, frame_id, bbox_center, interaction_feature, app_feature, bbox, detectedObject):
         self._bbox_center = bbox_center
 
         '''a list [x, y, w, h]'''
@@ -14,7 +14,7 @@ class track_state(object):
         self._interaction_feature = interaction_feature
 
         self._track_id = -1
-        self._frame_id = -1
+        self._frame_id = frame_id
         
         self._detectedObj = detectedObject
 
@@ -137,7 +137,7 @@ class track(object):
         else:
             #du_track = copy.deepcopy(self)  
             du_track = track(self._track_id)  
-            du_track.track_state_list = self._track_state_list
+            du_track.track_state_list = list(self._track_state_list)
 
             cur_size = len(du_track)
             for i in range(timestep_len - cur_size):
