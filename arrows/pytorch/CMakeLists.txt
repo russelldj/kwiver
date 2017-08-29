@@ -13,6 +13,10 @@ if( KWIVER_ENABLE_PYTHON )
     kwiver/processes
 	SRNN_tracking)
 
+  kwiver_add_python_module(${CMAKE_CURRENT_SOURCE_DIR}/seg_detection.py
+    kwiver/processes
+	seg_detection)
+
   kwiver_add_python_module(${CMAKE_CURRENT_SOURCE_DIR}/pytorch_siamese_f_extractor.py
     kwiver/arrows/pytorch
     pytorch_siamese_f_extractor)
@@ -41,4 +45,15 @@ if( KWIVER_ENABLE_PYTHON )
     kwiver/arrows/pytorch
 	SRNN_data_loader)
 
+  kwiver_add_python_module(${CMAKE_CURRENT_SOURCE_DIR}/seg_utils.py
+    kwiver/arrows/pytorch
+	seg_utils)
+
+  kwiver_add_python_module(${CMAKE_CURRENT_SOURCE_DIR}/fcn_segmentation.py
+    kwiver/arrows/pytorch
+	fcn_segmentation)
+
+  kwiver_add_python_module(${CMAKE_CURRENT_SOURCE_DIR}/fcn_models.py
+    kwiver/arrows/pytorch
+	fcn_models)
 endif()
