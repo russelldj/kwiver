@@ -2,11 +2,14 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import absolute_import
 
-import six
 from PIL import Image
 
 from torch.autograd import Variable
 import numpy as np
+
+from vital.types import BoundingBox
+from vital.types import DetectedObject
+from vital.types import DetectedObjectSet
 
 from kwiver.arrows.pytorch.seg_utils import *
 
@@ -21,10 +24,13 @@ class FCN_Segmentation(object):
         self.cuda = cuda
         self.model = model
 
-    def __call__(self, in_img):
-        self._apply(in_img)
+    def __call__(self, in_img, fcn_flag=True):
+        if fcn_flag: 
+            return self._apply_fcn(in_img)
+        else:
+            return self._apply_contour(in_img)
 
-    def _apply(self, in_img):
+    def _apply_fcn(self, in_img):
 
         self.model.eval()
 
@@ -36,24 +42,37 @@ class FCN_Segmentation(object):
 
         lbl_pred = score.data.max(1)[1].cpu().numpy()[:, :, :]
 
-        lbl_pred = label2rgb(lbl_pred, img=in_img, n_labels=21)
-        #lbl_pred = label2rgb(lbl_pred, n_labels=21)
+        #lbl_pred = label2rgb(lbl_pred, img=in_img, n_labels=21)
+        lbl_pred = label2rgb(lbl_pred, n_labels=21)
 
         im = Image.fromarray(lbl_pred.squeeze())
-        im.show()
-        Image.fromarray(in_img).show()
         
         # get bounding boxs
-        cv_in_img = cv2.cvtColor(np.array(in_img), cv2.COLOR_RGB2BGR)
         cv_pred = cv2.cvtColor(np.array(lbl_pred.squeeze()), cv2.COLOR_RGB2BGR)
         imgray = cv2.cvtColor(cv_pred, cv2.COLOR_BGR2GRAY)
         _, thresh = cv2.threshold(imgray, 127, 255, 0)
         _, contours, _ = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
-        bbox_list = []
+        dos = DetectedObjectSet()
         for cnt in contours:
             x, y, w, h = cv2.boundingRect(cnt)
-            bbox_list.append(tuple((x, y, w, h)))
+            dobj = DetectedObject(bbox=BoundingBox(float(x), float(y), float(x + w), float(y + h)), confid=1.0)
+            dos.add(dobj)
 
-        return bbox_list
+        return dos
 
+    def _apply_contour(self, in_img):
+
+        # get bounding boxs
+        cv_img = cv2.cvtColor(np.array(in_img), cv2.COLOR_RGB2BGR)
+        imgray = cv2.cvtColor(cv_img, cv2.COLOR_BGR2GRAY)
+        _, thresh = cv2.threshold(imgray, 127, 255, 0)
+        _, contours, _ = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+
+        dos = DetectedObjectSet()
+        for cnt in contours:
+            x, y, w, h = cv2.boundingRect(cnt)
+            dobj = DetectedObject(bbox=BoundingBox(float(x), float(y), float(x + w), float(y + h)), confid=1.0)
+            dos.add(dobj)
+
+        return dos

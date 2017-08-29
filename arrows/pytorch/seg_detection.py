@@ -61,10 +61,9 @@ class seg_detection(KwiverProcess):
                               'Trained PyTorch fcn model.')
         self.declare_config_using_trait('fcn_model_path')
 
-        self.add_config_trait("fcn_model_input_size_w", "fcn_model_input_size_w", '365', 'Model input image width')
-        self.add_config_trait("fcn_model_input_size_h", "fcn_model_input_size_h", '500', 'Model input image height')
-        self.declare_config_using_trait('fcn_model_input_size_w')
-        self.declare_config_using_trait('fcn_model_input_size_h')
+        self.add_config_trait("fcn_flag", "fcn_flag", 'True', 'define whether use FCN based or contour based detection')
+        self.declare_config_using_trait('fcn_flag')
+    
 
         # set up required flags
         optional = process.PortFlags()
@@ -80,9 +79,9 @@ class seg_detection(KwiverProcess):
     # ----------------------------------------------
     def _configure(self):
 
-        # Siamese model config
-        self._fcn_seg_img_w = int(self.config_value('fcn_model_input_size_w'))
-        self._fcn_seg_img_h = int(self.config_value('fcn_model_input_size_h'))
+        fcn_flag = self.config_value('fcn_flag')
+        self._fcn_flag = True if fcn_flag == 'True' else False 
+
         fcn_seg_model_path = self.config_value('fcn_model_path')
 
         fcn_model = FCN16s(n_class=21).cuda()
@@ -101,11 +100,12 @@ class seg_detection(KwiverProcess):
 
         # Get current frame and give it to app feature extractor
         im = in_img_c.get_image().get_pil_image()
-        im = im.resize((self._fcn_seg_img_w, self._fcn_seg_img_h), pilImage.BILINEAR)
         im = np.array(im, dtype=np.uint8)
         
-        bbox_list = self._fcn_seg(im)
+        dos = self._fcn_seg(im, fcn_flag=self._fcn_flag)
+        print('dos length {}'.format(dos.size()))
 
+        self.push_to_port_using_trait('detected_object_set', dos)
         self._base_step()
 
 
