@@ -62,5 +62,4 @@ if( KWIVER_ENABLE_PYTHON )
 
   kwiver_create_python_plugin_init( kwiver/arrows )
   add_subdirectory( pytorch )
-  add_subdirectory( hello_world )
 endif()
