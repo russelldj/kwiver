@@ -36,6 +36,7 @@ def label_colormap(N=256):
         cmap[i, 1] = g
         cmap[i, 2] = b
     cmap = cmap.astype(np.float32) / 255
+    cmap = (cmap * 255).astype(np.uint8)
     return cmap
 
 
@@ -50,7 +51,6 @@ def label2rgb(lbl, img=None, label_names=None, n_labels=None,
         else:
             assert n_labels == len(label_names)
     cmap = label_colormap(n_labels)
-    cmap = (cmap * 255).astype(np.uint8)
 
     lbl_viz = cmap[lbl]
     lbl_viz[lbl == -1] = (0, 0, 0)  # unlabeled
@@ -77,14 +77,14 @@ def label2rgb(lbl, img=None, label_names=None, n_labels=None,
         if label == -1:
             continue  # unlabeled
 
-        mask = lbl == label
+        mask = lbl.squeeze() == label
         if 1. * mask.sum() / mask.size < thresh_suppress:
             continue
         mask = (mask * 255).astype(np.uint8)
         y, x = scipy.ndimage.center_of_mass(mask)
         y, x = map(int, [y, x])
 
-        if lbl[y, x] != label:
+        if lbl.squeeze()[y, x] != label:
             Y, X = np.where(mask)
             point_index = np.random.randint(0, len(Y))
             y, x = Y[point_index], X[point_index]
@@ -101,8 +101,8 @@ def label2rgb(lbl, img=None, label_names=None, n_labels=None,
                 return (0, 0, 0)
             return (255, 255, 255)
 
-        color = get_text_color(lbl_viz[y, x])
-        cv2.putText(lbl_viz, text,
+        color = get_text_color(lbl_viz[0, 0, y, x])
+        cv2.putText(lbl_viz[0, 0, :, :], text,
                     (x - text_size[0] // 2, y),
                     font_face, font_scale, color, thickness)
     return lbl_viz
