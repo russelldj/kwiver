@@ -59,7 +59,7 @@ from kwiver.arrows.pytorch.track import track_state, track, track_set
 from kwiver.arrows.pytorch.SRNN_matching import SRNN_matching, RnnType
 from kwiver.arrows.pytorch.pytorch_siamese_f_extractor import pytorch_siamese_f_extractor
 
-from kwiver.arrows.pytorch.MOT_bbox import MOT_bbox
+from kwiver.arrows.pytorch.MOT_bbox import MOT_bbox, GTFileType
 
 def ts2ot_list(track_set):
     ot_list = [] 
@@ -98,10 +98,10 @@ class SRNN_tracking(KwiverProcess):
         self.declare_config_using_trait('detection_select_threshold')
 
         # target RNN full model
-        self.add_config_trait("targetRNN_full_model_path", "targetRNN_full_model_path",
+        self.add_config_trait("targetRNN_AIM_model_path", "targetRNN_AIM_model_path",
                               '/home/bdong/HiDive_project/tracking_the_untrackable/snapshot/targetRNN_snapshot/App_LSTM_epoch_51.pt',
                               'Trained targetRNN PyTorch model.')
-        self.declare_config_using_trait('targetRNN_full_model_path')
+        self.declare_config_using_trait('targetRNN_AIM_model_path')
 
         # target RNN AI model
         self.add_config_trait("targetRNN_AI_model_path", "targetRNN_AI_model_path",
@@ -116,16 +116,29 @@ class SRNN_tracking(KwiverProcess):
 
         # MOT gt detection
         #-------------------------------------------------------------------
-        self.add_config_trait("MOT_Testing_flag", "MOT_Testing_flag", 'False', 'MOT testing flag')
-        self.declare_config_using_trait('MOT_Testing_flag')
+        self.add_config_trait("MOT_GTbbox_flag", "MOT_GTbbox_flag", 'False', 'MOT GT bbox flag')
+        self.declare_config_using_trait('MOT_GTbbox_flag')
+        #-------------------------------------------------------------------
+
+        # AFRL gt detection
+        #-------------------------------------------------------------------
+        self.add_config_trait("AFRL_GTbbox_flag", "AFRL_GTbbox_flag", 'False', 'AFRL GT bbox flag')
+        self.declare_config_using_trait('AFRL_GTbbox_flag')
         
-        self.add_config_trait("MOT_GT_det_file_path", "MOT_GT_det_file_path", 
-                             '', 'MOT ground truth detection file targetRNN_full_model_path for testing')
-        self.declare_config_using_trait('MOT_GT_det_file_path')
+        #-------------------------------------------------------------------
+
+        # GT bbox file
+        #-------------------------------------------------------------------
+        self.add_config_trait("GT_bbox_file_path", "GT_bbox_file_path", 
+                             '', 'MOT ground truth detection file for testing')
+        self.declare_config_using_trait('GT_bbox_file_path')
         #-------------------------------------------------------------------
 
         self._track_flag = False
-        self._step_id = 1
+
+        # AFRL start id : 0
+        # MOT start id : 1
+        self._step_id = 0
 
         # set up required flags
         optional = process.PortFlags()
@@ -151,16 +164,30 @@ class SRNN_tracking(KwiverProcess):
         self._app_feature_extractor = pytorch_siamese_f_extractor(siamese_model_path, siamese_img_size)
 
         # targetRNN_full model config
-        targetRNN_full_model_path = self.config_value('targetRNN_full_model_path')
+        targetRNN_AIM_model_path = self.config_value('targetRNN_AIM_model_path')
         targetRNN_AI_model_path = self.config_value('targetRNN_AI_model_path')
-        self._SRNN_matching = SRNN_matching(targetRNN_full_model_path, targetRNN_AI_model_path)
+        self._SRNN_matching = SRNN_matching(targetRNN_AIM_model_path, targetRNN_AI_model_path)
 
-        # MOT related
-        MOT_file_path = self.config_value('MOT_GT_det_file_path')
-        self._m_bbox = MOT_bbox(MOT_file_path)
 
-        MOT_flag = self.config_value('MOT_Testing_flag')
-        self._mot_flag = (MOT_flag == 'True')
+        self._GTbbox_flag = False
+        # use MOT gt detection
+        MOT_GTbbox_flag = self.config_value('MOT_GTbbox_flag')
+        MOT_GT_flag = (MOT_GTbbox_flag == 'True')
+        if MOT_GT_flag:
+            file_format = GTFileType.MOT
+
+        # use AFRL gt detection
+        AFRL_GTbbox_flag = self.config_value('AFRL_GTbbox_flag')
+        AFRL_GT_flag = (AFRL_GTbbox_flag == 'True')
+        if AFRL_GT_flag:
+            file_format = GTFileType.AFRL
+
+        self._GTbbox_flag = MOT_GT_flag or AFRL_GT_flag 
+
+        # read GT bbox related
+        if self._GTbbox_flag: 
+            GTbbox_file_path = self.config_value('GT_bbox_file_path')
+            self._m_bbox = MOT_bbox(GTbbox_file_path, file_format)
 
         self._similarity_threshold = float(self.config_value('similarity_threshold'))
         self._grid = grid()
@@ -182,16 +209,15 @@ class SRNN_tracking(KwiverProcess):
         im = in_img_c.get_image().get_pil_image()
         self._app_feature_extractor.frame = im
 
-        # TODO: replace the dos with MOT ground truth bbox for testing
         # Get detection bbox
-        if self._mot_flag is True:
+        if self._GTbbox_flag is True:
             dos = self._m_bbox[self._step_id] 
         else:
             dos = dos_ptr.select(self._select_threshold)
         #print('bbox list len is {}'.format(len(dos)))
 
         # interaction features
-        grid_feature_list = self._grid(im.size, dos, self._mot_flag)
+        grid_feature_list = self._grid(im.size, dos, self._GTbbox_flag)
         #print(grid_feature_list)
 
         track_state_list = []
@@ -199,7 +225,7 @@ class SRNN_tracking(KwiverProcess):
         
         # get new track state from new frame and detections
         for idx, item in enumerate(dos):
-            if self._mot_flag is True:
+            if self._GTbbox_flag is True:
                 bbox = item
                 d_obj = DetectedObject(bbox=item , confid=1.0)
             else:
