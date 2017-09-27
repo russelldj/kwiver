@@ -34,6 +34,7 @@
 #include <vital/vital_export.h>
 #include <vital/vital_config.h>
 
+#include <vital/types/uid.h>
 #include <vital/types/timestamp.h>
 #include <vital/types/vector.h>
 #include <vital/types/bounding_box.h>
@@ -78,7 +79,7 @@ public:
    * track_descriptor documentation). Only quanities which get used
    * downstream need be filled.
    */
-  class history_entry
+  class VITAL_EXPORT history_entry
   {
   public:
     // -- TYPES --
@@ -151,7 +152,7 @@ public:
   // -- TYPES --
   typedef std::vector< track_descriptor_sptr > vector_t;
   typedef kwiver::vital::descriptor_dynamic< double > descriptor_data_t;
-  typedef std::shared_ptr< descriptor_data_t > descriptor_data_sptr_t;
+  typedef std::shared_ptr< descriptor_data_t > descriptor_data_sptr;
   typedef std::vector< history_entry > descriptor_history_t;
   typedef std::string descriptor_id_t;
 
@@ -205,6 +206,26 @@ public:
 
 
   /**
+   * \brief Override the descriptor uid for this descriptor.
+   *
+   * Sets a new identifier for this descriptor.
+   *
+   * @param id The descriptor identifier
+   */
+  void set_uid( const vital::uid& id );
+
+
+  /**
+   * \brief Returns the descriptor uid.
+   *
+   * This function returns the descriptor uid.
+   *
+   * @return The descriptor unique identifier.
+   */
+  vital::uid const& get_uid() const;
+
+
+  /**
    * \brief Add new track id to raw descriptor.
    *
    * The track id is added to the end of the list of track IDs in
@@ -244,7 +265,7 @@ public:
    *
    * @param data Descriptor data vector
    */
-  void set_descriptor( descriptor_data_sptr_t const& data );
+  void set_descriptor( descriptor_data_sptr const& data );
 
 
   /**
@@ -255,7 +276,7 @@ public:
    *
    * @return Reference to descriptor data vector.
    */
-  descriptor_data_sptr_t const& get_descriptor() const;
+  descriptor_data_sptr const& get_descriptor() const;
 
 
   /**
@@ -270,7 +291,7 @@ public:
    *
    * @return Reference to descriptor data vector.
    */
-  descriptor_data_sptr_t& get_descriptor();
+  descriptor_data_sptr& get_descriptor();
 
 
   //@{
@@ -404,11 +425,14 @@ private:
   /// Descriptor type ID
   descriptor_id_t type_;
 
+  /// Descriptor unique ID
+  vital::uid uid_;
+
   /// IDs of tracks this descriptor came from, if exists.
   std::vector< uint64_t > track_ids_;
 
   /// Actual descriptor data contents
-  descriptor_data_sptr_t data_;
+  descriptor_data_sptr data_;
 
   /// History of descriptor, if known
   descriptor_history_t history_;

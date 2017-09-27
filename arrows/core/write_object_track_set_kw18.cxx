@@ -127,7 +127,7 @@ write_object_track_set_kw18
                << "0 "                     // 15: world-loc x
                << "0 "                     // 16: world-loc y
                << "0 "                     // 17: world-loc z
-               << "-1 "                    // 18: timestamp
+               << ts->frame() << " "       // 18: timestamp
                << det->confidence()        // 19: confidence
                << std::endl;
     }
@@ -169,19 +169,19 @@ write_object_track_set_kw18
              << "6:velocity(x) "
              << "7:velocity(y) "
 
-             << "8:Image-loc(x)"
-             << " 9:Image-loc(y)"
-             << " 10:Img-bbox(TL_x)"
-             << " 11:Img-bbox(TL_y)"
-             << " 12:Img-bbox(BR_x)"
-             << " 13:Img-bbox(BR_y)"
-             << " 14:Area"
+             << "8:Image-loc(x) "
+             << "9:Image-loc(y) "
+             << "10:Img-bbox(TL_x) "
+             << "11:Img-bbox(TL_y) "
+             << "12:Img-bbox(BR_x) "
+             << "13:Img-bbox(BR_y) "
+             << "14:Area "
 
-             << " 15:World-loc(x)"
-             << " 16:World-loc(y)"
-             << " 17:World-loc(z)"
-             << " 18:timestamp"
-             << " 19:track-confidence"
+             << "15:World-loc(x) "
+             << "16:World-loc(y) "
+             << "17:World-loc(z) "
+             << "18:timestamp "
+             << "19:track-confidence"
              << std::endl;
 
     d->m_first = false;

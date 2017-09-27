@@ -1,5 +1,5 @@
 /*ckwg +29
- * Copyright 2013-2014 by Kitware, Inc.
+ * Copyright 2013-2017 by Kitware, Inc.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -190,6 +190,9 @@ public:
 
   /// Access a const iterator to the end of the history
   history_const_itr end() const { return history_.end(); }
+
+  /// Access the last entry of the history
+  track_state_sptr back() const { return history_.back(); }
 
   /// Find the track state iterator matching \a frame
   /**
