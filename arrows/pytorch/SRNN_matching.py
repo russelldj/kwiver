@@ -30,14 +30,14 @@ class SRNN_matching(object):
         # load full target RNN model
         snapshot = torch.load(targetRNN_AI_model_path)
         self._targetRNN_AI_model.load_state_dict(snapshot['state_dict'])
-        self._targetRNN_AI_model.train(False)
+        self._targetRNN_AI_model.eval()
         #self._targetRNN_AI_model = torch.nn.DataParallel(self._targetRNN_AI_model).cuda()
 
     def __call__(self, track_set, track_state_list):
         tracks_num = len(track_set)
         track_states_num = len(track_state_list)
 
-        similarity_mat = np.empty([tracks_num, track_states_num])
+        similarity_mat = np.ones([tracks_num, track_states_num], dtype=np.float32)
 
         track_idx_list = []
 
@@ -47,40 +47,43 @@ class SRNN_matching(object):
             for ts in range(track_states_num):
 
                 if len(cur_track) < g_config.timeStep:
-                    # if the track does not have enough track_state, we will duplicate to time-step, but only use app and interaction features
+                    # if the track does not have enough track_state, we will duplicate to time-step, but only use targetRNN_AI
                     temp_track = cur_track.duplicate_track_state(g_config.timeStep)
                     similarity_mat[t, ts] = self._est_similarity(temp_track, track_state_list[ts], RnnType=RnnType.Target_RNN_AI)
                 else:
-                    # if the track does have enough track states, we use the original targetRNN
-                    similarity_mat[t, ts] = self._est_similarity(cur_track, track_state_list[ts], RnnType=RnnType.Target_RNN_FULL)
+                    # if the track does have enough track states, we use targetRNN_AIM
+                    similarity_mat[t, ts] = self._est_similarity(cur_track, track_state_list[ts], RnnType=RnnType.Target_RNN_AIM)
 
         return similarity_mat, track_idx_list
 
     def _est_similarity(self, track, track_state, RnnType):
-        assert(len(track) >= g_config.timeStep)
-
-        in_app_seq, in_app_target, in_motion_seq, in_motion_target, in_interaction_seq, in_interaction_target = \
-            self._process_track(track, track_state)
-        
-        if RnnType == RnnType.Target_RNN_FULL:
-            output = self._targetRNN_full_model(in_app_seq, in_app_target, in_motion_seq, in_motion_target, in_interaction_seq,
-                       in_interaction_target)
-        elif RnnType == RnnType.Target_RNN_AI:
-            output = self._targetRNN_AI_model(in_app_seq, in_app_target, in_motion_seq, in_motion_target, in_interaction_seq,
-                       in_interaction_target)
-
-        F_softmax = nn.Softmax()
-        output = F_softmax(output)
-        pred = torch.max(output, 1)
-
-        pred_lable = pred[1].data.cpu().numpy().squeeze()
-        pred_p = pred[0].data.cpu().numpy().squeeze()
-
-        # return negative value for huganrian algorithm
-        if pred_lable == 0:
+        if track.active_flag is True:
+            assert(len(track) >= g_config.timeStep)
+    
+            in_app_seq, in_app_target, in_motion_seq, in_motion_target, in_interaction_seq, in_interaction_target = \
+                self._process_track(track, track_state)
+            
+            if RnnType == RnnType.Target_RNN_AIM:
+                output = self._targetRNN_full_model(in_app_seq, in_app_target, in_motion_seq, in_motion_target, in_interaction_seq,
+                           in_interaction_target)
+            elif RnnType == RnnType.Target_RNN_AI:
+                output = self._targetRNN_AI_model(in_app_seq, in_app_target, in_motion_seq, in_motion_target, in_interaction_seq,
+                           in_interaction_target)
+    
+            F_softmax = nn.Softmax()
+            output = F_softmax(output)
+            pred = torch.max(output, 1)
+    
+            pred_lable = pred[1].data.cpu().numpy().squeeze()
+            pred_p = pred[0].data.cpu().numpy().squeeze()
+    
+            # return negative value for huganrian algorithm
+            if pred_lable == 0:
+                return 1.0
+            else:
+                return -pred_p
+        else: 
             return 1.0
-        else:
-            return -pred_p
 
     def _process_track(self, track, track_state):
 
@@ -100,7 +103,7 @@ class SRNN_matching(object):
                           np.asarray(track[-1].bbox_center).reshape(1, g_config.M_F_num)
 
         # add batch dim
-        # TODO: loader may be simplier this part
+        # TODO: loader may be simplier for this part
         app_f_list = np.reshape(app_f_list, (1, g_config.timeStep, -1))
         app_target_f = np.reshape(app_target_f, (1, -1))
         motion_f_list = np.reshape(motion_f_list, (1, g_config.timeStep, -1))

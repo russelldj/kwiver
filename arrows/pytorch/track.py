@@ -87,6 +87,7 @@ class track(object):
     def __init__(self, id):
         self._track_id = id
         self._track_state_list = []
+        self._active_flag = True
 
     def __len__(self):
         return len(self._track_state_list)
@@ -111,6 +112,14 @@ class track(object):
     @id.setter
     def id(self, val):
         self._track_id = val
+
+    @property
+    def active_flag(self):
+        return self._active_flag
+
+    @active_flag.setter
+    def active_flag(self, val):
+        self._active_flag = val
 
     @property
     def track_state_list(self):

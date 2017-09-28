@@ -22,7 +22,7 @@ class RnnType(Enum):
     Appearance = 1
     Motion = 2
     Interaction = 3
-    Target_RNN_FULL = 4
+    Target_RNN_AIM = 4
     Target_RNN_AI = 5
 
 

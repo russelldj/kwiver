@@ -113,6 +113,11 @@ class SRNN_tracking(KwiverProcess):
         self.add_config_trait("similarity_threshold", "similarity_threshold", '0.5',
                               'similarity threshold.')
         self.declare_config_using_trait('similarity_threshold')
+        
+        # matching active track threshold
+        self.add_config_trait("terminate_track_threshold", "terminate_track_threshold", '15',
+                              'terminate the tracking if the target has been lost for more than termniate_track_threshold frames.')
+        self.declare_config_using_trait('terminate_track_threshold')
 
         # MOT gt detection
         #-------------------------------------------------------------------
@@ -168,7 +173,6 @@ class SRNN_tracking(KwiverProcess):
         targetRNN_AI_model_path = self.config_value('targetRNN_AI_model_path')
         self._SRNN_matching = SRNN_matching(targetRNN_AIM_model_path, targetRNN_AI_model_path)
 
-
         self._GTbbox_flag = False
         # use MOT gt detection
         MOT_GTbbox_flag = self.config_value('MOT_GTbbox_flag')
@@ -194,6 +198,7 @@ class SRNN_tracking(KwiverProcess):
 
         # generated track_set
         self._track_set = track_set()
+        self._terminate_track_threshold = int(self.config_value('terminate_track_threshold'))
 
         self._base_configure()
 
@@ -250,6 +255,10 @@ class SRNN_tracking(KwiverProcess):
             next_trackID = self._track_set.add_new_track_state_list(next_trackID, track_state_list)
             self._track_flag = True
         else:
+            # check whether we need to terminate a track
+            for ti in range(len(self._track_set)):
+                if self._step_id - self._track_set[ti][-1].frame_id > self._terminate_track_threshold:
+                    self._track_set[ti].active_flag = False
 
             print('track_set len {}'.format(len(self._track_set)))
             print('track_state_list len {}'.format(len(track_state_list)))
