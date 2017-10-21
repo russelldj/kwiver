@@ -43,7 +43,7 @@ import ctypes
 from vital.types import DescriptorSet
 from vital.types import DetectedObjectSet
 from vital.types import ImageContainer
-from vital.types import TrackSet
+from vital.types import TrackSet, ObjectTrackSet
 from vital.util import find_vital_library
 from vital.util.string import vital_string_t
 
@@ -178,7 +178,8 @@ def _convert_object_track_set_out(handle):
     """
     _VCL = find_vital_library.find_vital_type_converter_library()
     func = _VCL.vital_object_trackset_to_datum
-    func.argtypes = [ TrackSet.C_TYPE_PTR ]
+    #func.argtypes = [ TrackSet.C_TYPE_PTR ]
+    func.argtypes = [ ObjectTrackSet.C_TYPE_PTR ]
     func.restype = ctypes.py_object
     return func(handle)
     

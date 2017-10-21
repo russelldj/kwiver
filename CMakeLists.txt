@@ -18,6 +18,9 @@ set(KWIVER_VERSION "${KWIVER_VERSION_MAJOR}.${KWIVER_VERSION_MINOR}.${KWIVER_VER
 set( fletch_DIR "" CACHE PATH "Path to FLETCH packages" )
 if ( IS_DIRECTORY ${fletch_DIR} )
   find_package( fletch NO_MODULE )
+  # Search for libraries in the fletch install root
+  list(APPEND CMAKE_PREFIX_PATH "${fletch_DIR}")
+
   if ( fletch_FOUND )
     # Search for libraries in the fletch install root
     list(APPEND CMAKE_PREFIX_PATH "${fletch_ROOT}")
@@ -263,6 +266,9 @@ if ( KWIVER_ENABLE_MATLAB )
   file( APPEND "${KWIVER_SETUP_BATCH_FILE}" "set PATH=%PATH%;${Matlab_LIBRARY_DIR}\n" )
 endif()
 
+if ( fletch_DIR )
+  file( APPEND "${KWIVER_SETUP_SCRIPT_FILE}" "export LD_LIBRARY_PATH=${fletch_DIR}/lib:$LD_LIBRARY_PATH\n" )
+endif()
 
 if (KWIVER_ENABLE_TRACK_ORACLE)
   add_subdirectory( track_oracle )
@@ -317,8 +323,8 @@ endif()
 
 if (fletch_FOUND)
   # since we have fletch, add include and lib dirs to export
-  list( APPEND KWIVER_INCLUDE_DIRS "${fletch_ROOT}/include")
-  list( APPEND KWIVER_LIBRARY_DIRS "${fletch_ROOT}/lib")
+  list( APPEND KWIVER_INCLUDE_DIRS "${fletch_DIR}/include")
+  list( APPEND KWIVER_LIBRARY_DIRS "${fletch_DIR}/lib")
 endif()
 
 kwiver_configure_file(kwiver-config
