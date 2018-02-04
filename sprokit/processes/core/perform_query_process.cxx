@@ -218,15 +218,8 @@ perform_query_process
         name(), "Unable to open pipeline file: " + d->external_pipeline_file );
     }
 
-    try
-    {
-      new_pipeline->build_pipeline( pipe_stream, dir.string() );
-      new_pipeline->start();
-    }
-    catch( const std::exception& e )
-    {
-      throw sprokit::invalid_configuration_exception( name(), e.what() );
-    }
+    new_pipeline->build_pipeline( pipe_stream, dir.string() );
+    new_pipeline->start();
 
     d->external_pipeline = std::move( new_pipeline );
     pipe_stream.close();
