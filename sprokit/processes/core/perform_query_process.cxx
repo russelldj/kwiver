@@ -156,31 +156,6 @@ void perform_query_process
 
   if( d->external_handler )
   {
-#ifndef DUMMY_OUTPUT
-    auto dir = boost::filesystem::path( d->external_pipeline_file ).parent_path();
-
-    if( !d->external_pipeline_file.empty() )
-    {
-      std::unique_ptr< embedded_pipeline > new_pipeline =
-        std::unique_ptr< embedded_pipeline >( new embedded_pipeline() );
-
-      std::ifstream pipe_stream;
-      pipe_stream.open( d->external_pipeline_file, std::ifstream::in );
-
-      if( !pipe_stream )
-      {
-        throw sprokit::invalid_configuration_exception(
-          name(), "Unable to open pipeline file: " + d->external_pipeline_file );
-      }
-
-      new_pipeline->build_pipeline( pipe_stream, dir.string() );
-      new_pipeline->start();
-
-      d->external_pipeline = std::move( new_pipeline );
-      pipe_stream.close();
-    }
-#endif
-
     algo::read_track_descriptor_set::set_nested_algo_configuration(
       "descriptor_reader", algo_config, d->descriptor_reader );
 
@@ -227,6 +202,30 @@ void
 perform_query_process
 ::_init()
 {
+#ifndef DUMMY_OUTPUT
+  auto dir = boost::filesystem::path( d->external_pipeline_file ).parent_path();
+
+  if( d->external_handler && !d->external_pipeline_file.empty() )
+  {
+    std::unique_ptr< embedded_pipeline > new_pipeline =
+      std::unique_ptr< embedded_pipeline >( new embedded_pipeline() );
+
+    std::ifstream pipe_stream;
+    pipe_stream.open( d->external_pipeline_file, std::ifstream::in );
+
+    if( !pipe_stream )
+    {
+      throw sprokit::invalid_configuration_exception(
+        name(), "Unable to open pipeline file: " + d->external_pipeline_file );
+    }
+
+    new_pipeline->build_pipeline( pipe_stream, dir.string() );
+    new_pipeline->start();
+
+    d->external_pipeline = std::move( new_pipeline );
+    pipe_stream.close();
+  }
+#endif
 }
 
 
