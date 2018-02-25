@@ -204,13 +204,8 @@ mark_as_advanced(PYTHON_ABIFLAGS)
 # packages will be generated in the build tree. (TODO: python modules should
 # use a setup.py file to install themselves to the right location)
 #
-#set(kwiver_python_subdir "python${PYTHON_VERSION}${PYTHON_ABIFLAGS}")
-
-# Instead of contructing the directory with ABIFLAGS just use what python gives us
-get_filename_component(python_lib_subdir ${python_site_packages} DIRECTORY)
-get_filename_component(python_subdir ${python_lib_subdir} NAME)
-set(kwiver_python_subdir ${python_subdir})
-set(kwiver_python_output_path "${KWIVER_BINARY_DIR}/${python_lib_subdir}")
+set(kwiver_python_subdir "python${PYTHON_VERSION}${PYTHON_ABIFLAGS}")
+set(kwiver_python_output_path "${KWIVER_BINARY_DIR}/lib/${kwiver_python_subdir}")
 
 # Currently needs to be separate because sprokit may have CONFIGURATIONS that
 # are placed between lib and `kwiver_python_subdir`
