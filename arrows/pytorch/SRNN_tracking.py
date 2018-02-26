@@ -353,6 +353,15 @@ class SRNN_tracking(KwiverProcess):
                                                                     int(bbox.width()), int(bbox.height())],
                                      detectedObject=d_obj)
                 track_state_list.append(cur_ts)
+
+            # if in image query mode turn all states into tracks, call it a day
+            #if self._image_query_mode:
+            #  next_trackID = self._track_set.add_new_track_state_list(next_trackID, track_state_list)
+            #  self.push_to_port_using_trait('object_track_set', ots)
+            #  self.push_to_port_using_trait('detected_object_set', dos_ptr)
+            #  self._step_id += 1
+            #  self._base_step()
+            #  return
                 
             # if there is no tracks, generate new tracks from the track_state_list
             if self._track_flag is False:
