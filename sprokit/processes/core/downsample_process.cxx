@@ -165,7 +165,7 @@ void downsample_process
                         port_description_t( "Input data." ) );
   }
 
-  declare_output_port_using_trait( timestamp, required );
+  declare_output_port_using_trait( timestamp, optional );
   for( size_t i = 0; i < 5; i++ )
   {
     declare_output_port( priv::port_outputs[i],
