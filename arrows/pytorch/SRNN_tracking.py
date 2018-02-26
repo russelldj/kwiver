@@ -77,7 +77,7 @@ def ts2ot_list(track_set):
 
     for idx, t in enumerate(track_set):
         for i in range(len(t)):
-            ot_state = ObjectTrackState(t[i].frame_id, t[i].detectedObj)
+            ot_state = ObjectTrackState(t[i].frame_id, t[i].frame_time, t[i].detectedObj)
             if not ot_list[idx].append(ot_state):
                 print('cannot add ObjectTrackState')
                 exit(1)
@@ -281,6 +281,7 @@ class SRNN_tracking(KwiverProcess):
 
         # grab image container from port using traits
         in_img_c = self.grab_input_using_trait('image')
+        #timestamp = self.grab_input_using_trait('timestamp')
         dos_ptr = self.grab_input_using_trait('detected_object_set')
 
         # Get current frame and give it to app feature extractor
@@ -320,9 +321,13 @@ class SRNN_tracking(KwiverProcess):
             for idx, item in enumerate(dos):
                 if self._GTbbox_flag is True:
                     bbox = item
+                    fid = self._step_id
+                    ts = self._step_id
                     d_obj = DetectedObject(bbox=item , confidence=1.0)
                 else:
                     bbox = item.bounding_box()
+                    fid = self._step_id
+                    ts = self._step_id
                     d_obj = item
 
                 # store app feature to detectedObject
@@ -332,7 +337,7 @@ class SRNN_tracking(KwiverProcess):
                 det_obj_set.add(d_obj)
 
                 # build track state for current bbox for matching
-                cur_ts = track_state(frame_id=self._step_id, bbox_center=tuple((bbox.center())), 
+                cur_ts = track_state(frame_id=fid, frame_time=ts*200000, bbox_center=tuple((bbox.center())), 
                                      interaction_feature=grid_feature_list[idx],
                                      app_feature=pt_app_features[idx], bbox=[int(bbox.min_x()), int(bbox.min_y()), 
                                                                     int(bbox.width()), int(bbox.height())],

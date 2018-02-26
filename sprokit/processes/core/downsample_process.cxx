@@ -127,10 +127,13 @@ void downsample_process
   double frame_rate = grab_from_port_using_trait( frame_rate );
   bool send_frame = !d->skip_frame( ts, frame_rate );
 
+  static unsigned counter = 0;
+
   if( send_frame )
   {
     LOG_DEBUG( logger(), "Sending frame " << ts.get_frame() );
-    push_to_port_using_trait( timestamp, ts );
+    push_to_port_using_trait( timestamp, kwiver::vital::timestamp( counter * 200000, counter ) );
+    counter++;
   }
 
   for( size_t i = 0; i < 5; i++ )

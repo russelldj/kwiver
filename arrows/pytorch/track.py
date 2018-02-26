@@ -4,7 +4,7 @@ import copy
 from vital.types import DetectedObject
 
 class track_state(object):
-    def __init__(self, frame_id, bbox_center, interaction_feature, app_feature, bbox, detectedObject):
+    def __init__(self, frame_id, frame_time, bbox_center, interaction_feature, app_feature, bbox, detectedObject):
         self._bbox_center = bbox_center
 
         '''a list [x, y, w, h]'''
@@ -18,6 +18,7 @@ class track_state(object):
 
         self._track_id = -1
         self._frame_id = frame_id
+        self._frame_time = frame_time
         
         self._detectedObj = detectedObject
 
@@ -90,6 +91,14 @@ class track_state(object):
     @frame_id.setter
     def frame_id(self, val):
         self._frame_id = val
+
+    @property
+    def frame_time(self):
+        return self._frame_time
+
+    @frame_id.setter
+    def frame_time(self, val):
+        self._frame_time = val
 
     @property
     def detectedObj(self):
