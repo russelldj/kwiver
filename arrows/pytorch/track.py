@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 import copy
-from vital.types import DetectedObject
+import collections
 
 class track_state(object):
     def __init__(self, frame_id, bbox_center, interaction_feature, app_feature, bbox, detectedObject, sys_frame_id, sys_frame_time):
@@ -122,7 +122,7 @@ class track_state(object):
     def sys_frame_time(self):
         return self._sys_frame_time
 
-    @sys_time.setter
+    @sys_frame_time.setter
     def sys_frame_time(self, val):
         self._sys_frame_time = val
 
@@ -222,18 +222,19 @@ class track(object):
 
 class track_set(object):
     def __init__(self):
-        self._id_ts_dict = {}
+        self._id_ts_dict = collections.OrderedDict()
 
     def __len__(self):
         return len(self._id_ts_dict)
 
     def __getitem__(self, idx):
-        if idx >= len(self._id_ts_dict):
+        if idx >= len(self._id_ts_dict) or idx < 0:
             raise IndexError
+        # for Py3 
         return list(self._id_ts_dict.items())[idx][1]
 
     def __iter__(self):
-        for _, item in list(self._id_ts_dict.items()):
+        for _, item in self._id_ts_dict.items():
             yield item
 
     def get_track(self, track_id):
