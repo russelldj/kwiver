@@ -79,7 +79,7 @@ def ts2ot_list(track_set):
     for idx, t in enumerate(track_set):
         ot = ot_list[idx]
         for i, ti in enumerate(t):
-            ot_state = ObjectTrackState(ti.frame_id, ti.frame_time, ti.detectedObj)
+            ot_state = ObjectTrackState(ti.sys_frame_id, ti.sys_frame_time, ti.detectedObj)
             if not ot.append(ot_state):
                 print('cannot add ObjectTrackState')
                 exit(1)
@@ -358,7 +358,7 @@ class SRNN_tracking(KwiverProcess):
                                          interaction_feature=grid_feature_list[idx],
                                          app_feature=pt_app_features[idx], bbox=[int(bbox.min_x()), int(bbox.min_y()), 
                                                                         int(bbox.width()), int(bbox.height())],
-                                         detectedObject=d_obj)
+                                         detectedObject=d_obj, sys_frame_id=fid, sys_time=ts)
                     track_state_list.append(cur_ts)
                     
                 # if there is no tracks, generate new tracks from the track_state_list
