@@ -39,6 +39,7 @@ from torch import nn
 import numpy as np
 import scipy as sp
 import scipy.optimize
+import threading
 
 from PIL import Image as pilImage
 
@@ -69,6 +70,13 @@ from kwiver.arrows.pytorch.MOT_bbox import MOT_bbox, GTFileType
 from kwiver.arrows.pytorch.models import get_config
 
 g_config = get_config()
+
+#def print(msg):
+#    msg = '[{}] {}'.format(threading.current_thread(), msg)
+#    with open('foo', 'a') as f:
+#        f.write(str(msg) + '\n')
+#    sys.stdout.write(str(msg))
+#    sys.stdout.flush()
 
 def ts2ot_list(track_set):
     ot_list = [] 
@@ -358,7 +366,7 @@ class SRNN_tracking(KwiverProcess):
                                          interaction_feature=grid_feature_list[idx],
                                          app_feature=pt_app_features[idx], bbox=[int(bbox.min_x()), int(bbox.min_y()), 
                                                                         int(bbox.width()), int(bbox.height())],
-                                         detectedObject=d_obj, sys_frame_id=fid, sys_time=ts)
+                                         detectedObject=d_obj, sys_frame_id=fid, sys_frame_time=ts)
                     track_state_list.append(cur_ts)
                     
                 # if there is no tracks, generate new tracks from the track_state_list
@@ -431,13 +439,13 @@ class SRNN_tracking(KwiverProcess):
 
             self._base_step()
 
-      except BaseException as e:
-          print( "!!!" )
-          print( repr( e ) )
-          import traceback
-          print(traceback.format_exc())
-          print( "!!!" )
-          sys.stdout.flush()
+        except BaseException as e:
+            print( "!!!" )
+            print( repr( e ) )
+            import traceback
+            print(traceback.format_exc())
+            print( "!!!" )
+            sys.stdout.flush()
 
     def __del__(self):
         print('!!!!SRNN tracking Deleting python process!!!!')
