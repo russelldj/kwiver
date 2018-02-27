@@ -211,10 +211,10 @@ class track_set(object):
     def __getitem__(self, idx):
         if idx >= len(self._id_ts_dict):
             raise IndexError
-        return self._id_ts_dict.items()[idx][1]
+        return list(self._id_ts_dict.items())[idx][1]
 
     def __iter__(self):
-        for _, item in self._id_ts_dict.items():
+        for _, item in list(self._id_ts_dict.items()):
             yield item
 
     def get_track(self, track_id):
