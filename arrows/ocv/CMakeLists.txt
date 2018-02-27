@@ -106,7 +106,7 @@ target_link_libraries( kwiver_algo_ocv
                        ${Boost_SYSTEM_LIBRARY}
                        ${Boost_FILESYSTEM_LIBRARY}
                        ${Boost_REGEX_LIBRARY}
-                       svm
+                       libsvm
   )
 
 algorithms_create_plugin( kwiver_algo_ocv

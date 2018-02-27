@@ -37,7 +37,7 @@ from torch.autograd import Variable
 from torch import nn
 import numpy as np
 import scipy as sp
-import cv2
+#import cv2
 
 from PIL import Image as pilImage
 
