@@ -71,12 +71,19 @@ from kwiver.arrows.pytorch.models import get_config
 
 g_config = get_config()
 
-#def print(msg):
-#    msg = '[{}] {}'.format(threading.current_thread(), msg)
-#    with open('foo', 'a') as f:
-#        f.write(str(msg) + '\n')
-#    sys.stdout.write(str(msg))
-#    sys.stdout.flush()
+def print(msg):
+   import threading
+   import traceback
+   try:
+       msg = '[{}] {}'.format(threading.current_thread(), msg)
+   #    with open('database/Logs/SRNN_Tracking_Log', 'a') as f:
+   #        f.write(str(msg) + '\n')
+   except Exception as ex:
+       with open('database/Logs/SRNN_Tracking_Error_Log', 'a') as f:
+           f.write('Error durring print! Attempting to report\n')
+           f.write(repr(ex) + '\n')
+           f.write(traceback.format_exc() + '\n')
+           raise
 
 def ts2ot_list(track_set):
     ot_list = [] 
@@ -299,9 +306,6 @@ class SRNN_tracking(KwiverProcess):
     def _step(self):
         try:
             print('step {}'.format(self._step_id))
-            
-            print( "!!!" )
-            sys.stdout.flush()
 
             # grab image container from port using traits
             in_img_c = self.grab_input_using_trait('image')
@@ -440,12 +444,10 @@ class SRNN_tracking(KwiverProcess):
             self._base_step()
 
         except BaseException as e:
-            print( "!!!" )
             print( repr( e ) )
             import traceback
-            print(traceback.format_exc())
-            print( "!!!" )
-            sys.stdout.flush()
+            print( traceback.format_exc() )
+            #sys.stdout.flush()
 
     def __del__(self):
         print('!!!!SRNN tracking Deleting python process!!!!')
