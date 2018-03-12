@@ -36,7 +36,6 @@ set( ocv_headers_public
   match_features_flannbased.h
   match_set.h
   refine_detections_write_to_disk.h
-  refine_detections_with_svm.h
   split_image.h
   )
 kwiver_install_headers(
@@ -83,7 +82,6 @@ set( ocv_sources
   match_features_flannbased.cxx
   match_set.cxx
   refine_detections_write_to_disk.cxx
-  refine_detections_with_svm.cxx
   split_image.cxx
   )
 
@@ -95,10 +93,6 @@ kwiver_add_library( kwiver_algo_ocv
   ${ocv_headers_public}
   ${ocv_sources}
   )
-
-find_package( LIBSVM PATHS ../../../smqtk/TPL/libsvm-3.1-custom)
-include_directories(../../../smqtk/TPL/libsvm-3.1-custom)
-
 target_link_libraries( kwiver_algo_ocv
   PUBLIC               kwiver_algo_core
                        ${OpenCV_LIBS}
@@ -106,7 +100,6 @@ target_link_libraries( kwiver_algo_ocv
                        ${Boost_SYSTEM_LIBRARY}
                        ${Boost_FILESYSTEM_LIBRARY}
                        ${Boost_REGEX_LIBRARY}
-                       libsvm
   )
 
 algorithms_create_plugin( kwiver_algo_ocv
