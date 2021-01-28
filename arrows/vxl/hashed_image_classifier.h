@@ -135,6 +135,11 @@ public:
   virtual bool load_from_file( const std::string& file );
 
   /// Classify a feature array, in addition to adding offset to each pixel.
+  virtual void classify_images( const input_image_t& input_features,
+                                weight_image_t& output_image,
+                                const weight_t offset = 0.0 ) const;
+
+  /// Classify a feature array, in addition to adding offset to each pixel.
   virtual void classify_images( const feature_vector_t& input_features,
                                 weight_image_t& output_image,
                                 const weight_t offset = 0.0 ) const;

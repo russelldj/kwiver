@@ -6,12 +6,33 @@
 
 #include "hashed_image_classifier.h"
 
+#include <vil/vil_plane.h>
+
 #include <boost/lexical_cast.hpp>
 
 #include <cmath>
 
 namespace vidtk
 {
+
+// Classify a chain of hashed feature images
+template <typename FeatureType, typename OutputType>
+void hashed_image_classifier<FeatureType, OutputType>
+::classify_images( const input_image_t& input_features,
+                   weight_image_t& output_image,
+                   const weight_t offset ) const
+{
+  feature_vector_t input_features_vector;
+  unsigned num_planes = input_features.nplanes();
+  for( unsigned i = 0; i < num_planes; ++i )
+  {
+    input_features_vector.push_back( vil_plane( input_features, i ) );
+  }
+  classify_images( &input_features_vector[0],
+                   input_features.size(),
+                   output_image,
+                   offset );
+}
 
 // Classify a chain of hashed feature images
 template <typename FeatureType, typename OutputType>
@@ -34,8 +55,14 @@ void hashed_image_classifier<FeatureType, OutputType>
                    weight_image_t& output_image,
                    const weight_t offset ) const
 {
-  //LOG_ASSERT( model_->is_valid(), "Internal classifier invalid" );
-  //LOG_ASSERT( features == feature_count(), "Feature counts don't match" );
+  if( !model_->is_valid() )
+  {
+    //LOG_ERROR( , "Internal classifier invalid" );
+  }
+  if( features != feature_count() )
+  {
+    //LOG_ASSERT( features == feature_count(), "Feature counts don't match" );
+  }
 
   output_image.set_size( input_features[0].ni(), input_features[0].nj() );
   output_image.fill( offset );
