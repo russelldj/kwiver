@@ -10,6 +10,7 @@ set(vxl_headers_public
   close_loops_homography_guided.h
   color_commonality_filter.h
   compute_homography_overlap.h
+  convert_image.h
   estimate_canonical_transform.h
   estimate_essential_matrix.h
   estimate_fundamental_matrix.h
@@ -45,6 +46,7 @@ set(vxl_sources
   close_loops_homography_guided.cxx
   color_commonality_filter.cxx
   compute_homography_overlap.cxx
+  convert_image.cxx
   estimate_canonical_transform.cxx
   estimate_essential_matrix.cxx
   estimate_fundamental_matrix.cxx
