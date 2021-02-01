@@ -166,7 +166,25 @@ hashed_image_classifier_filter
     vxl::image_container::vital_to_vxl( image_data->get_image() );
   vil_image_view< double > weight_image;
 
-  d->classifier.classify_images( view, weight_image, 0.0 );
+  #define HANDLE_CASE( T )                                              \
+  case T:                                                               \
+  {                                                                     \
+    typedef vil_pixel_format_type_of< T >::component_type i_pix;        \
+    d->classifier.classify_images( vil_image_view<double>(), weight_image, 0.0 );           \
+    break;                                                              \
+  }                                                                     \
+
+  switch( view->pixel_format() )
+  {
+    HANDLE_CASE( VIL_PIXEL_FORMAT_BYTE );
+    HANDLE_CASE( VIL_PIXEL_FORMAT_UINT_16 );
+
+    default:
+    {
+      LOG_ERROR( logger(), "Invalid input format type received" );
+      return kwiver::vital::image_container_sptr();
+    }
+  }
 
   return std::make_shared< vxl::image_container>( weight_image );
 }

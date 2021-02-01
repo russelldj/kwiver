@@ -14,6 +14,7 @@ set(vxl_headers_public
   estimate_homography.h
   estimate_similarity_transform.h
   hashed_image_classifier.h
+  hashed_image_classifier_filter.h
   image_container.h
   image_io.h
   match_features_constrained.h
@@ -47,6 +48,7 @@ set(vxl_sources
   estimate_homography.cxx
   estimate_similarity_transform.cxx
   hashed_image_classifier.cxx
+  hashed_image_classifier_filter.cxx
   image_container.cxx
   image_io.cxx
   match_features_constrained.cxx

@@ -9,6 +9,7 @@
 
 #include "hashed_image_classifier.h"
 
+#include <vital/algo/image_filter.h>
 //#include <process_framework/process.h>
 //#include <process_framework/pipeline_aid.h>
 //
@@ -20,19 +21,21 @@
 
 #include <vector>
 
-namespace vidtk
-{
+namespace kwiver {
+
+namespace arrows {
+
+namespace vxl {
 
 /// Classify every pixel in an image according to a hashed_image_feature
-/// classifier. Can also optionally select different classifiers based on
-/// modality and/or GSD range.
+/// classifier.
 template< typename HashType = vxl_byte, typename OutputType = double >
-class hashed_image_classifier_process
-  : public process
+class hashed_image_classifier_filter
+  : public vital::algo::image_filter
 {
 public:
 
-  typedef hashed_image_classifier_process self_type;
+  typedef hashed_image_classifier_filter self_type;
   typedef std::vector< vil_image_view< HashType > > input_features;
   typedef hashed_image_classifier< HashType, OutputType > classifier;
 
@@ -95,7 +98,11 @@ private:
 };
 
 
-} // end namespace vidtk
+}
+
+}
+
+}
 
 
 #endif // vidtk_hashed_image_classifier_process_h_

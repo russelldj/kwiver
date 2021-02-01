@@ -4,8 +4,8 @@
  * Kitware, Inc., 28 Corporate Drive, Clifton Park, NY 12065.
  */
 
-#ifndef vidtk_hashed_image_classifier_h_
-#define vidtk_hashed_image_classifier_h_
+#ifndef VIDTK_HASHED_IMAGE_CLASSIFIER_H_
+#define VIDTK_HASHED_IMAGE_CLASSIFIER_H_
 
 #include <vil/vil_image_view.h>
 #include <vil/vil_rgb.h>
