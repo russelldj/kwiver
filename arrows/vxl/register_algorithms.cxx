@@ -10,7 +10,7 @@
 #include <arrows/vxl/kwiver_algo_vxl_plugin_export.h>
 #include <vital/algo/algorithm_factory.h>
 
-#include <arrows/vxl/high_pass_filter.h>
+#include <arrows/vxl/average_frames.h>
 #include <arrows/vxl/bundle_adjust.h>
 #include <arrows/vxl/close_loops_homography_guided.h>
 #include <arrows/vxl/color_commonality_filter.h>
@@ -20,6 +20,7 @@
 #include <arrows/vxl/estimate_fundamental_matrix.h>
 #include <arrows/vxl/estimate_homography.h>
 #include <arrows/vxl/estimate_similarity_transform.h>
+#include <arrows/vxl/high_pass_filter.h>
 #include <arrows/vxl/image_io.h>
 #include <arrows/vxl/optimize_cameras.h>
 #include <arrows/vxl/split_image.h>
@@ -45,7 +46,7 @@ register_factories( kwiver::vital::plugin_loader& vpm )
 
   using namespace kwiver::arrows::vxl;
 
-  reg.register_algorithm< high_pass_filter >();
+  reg.register_algorithm< average_frames >();
   reg.register_algorithm< bundle_adjust >();
   reg.register_algorithm< close_loops_homography_guided >();
   reg.register_algorithm< color_commonality_filter >();
@@ -55,6 +56,7 @@ register_factories( kwiver::vital::plugin_loader& vpm )
   reg.register_algorithm< estimate_fundamental_matrix >();
   reg.register_algorithm< estimate_homography >();
   reg.register_algorithm< estimate_similarity_transform >();
+  reg.register_algorithm< high_pass_filter >();
   reg.register_algorithm< image_io >();
   reg.register_algorithm< optimize_cameras >();
   reg.register_algorithm< split_image >();
