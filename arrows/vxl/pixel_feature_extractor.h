@@ -16,17 +16,14 @@ namespace arrows {
 namespace vxl {
 
 /**
- * @brief Convert between VXL image formats.
- *
- * This can be used, for example, to turn a floating point image into
- * a byte image and vice versa.
+ * @brief Extract multiple features from an image
  */
 class KWIVER_ALGO_VXL_EXPORT pixel_feature_extractor
   : public vital::algo::image_filter
 {
 public:
   PLUGIN_INFO( "vxl_pixel_feature_extractor",
-               "Convert image between different formats or scales." )
+               "Extract pixel-level features from an image." )
 
   pixel_feature_extractor();
   virtual ~pixel_feature_extractor();

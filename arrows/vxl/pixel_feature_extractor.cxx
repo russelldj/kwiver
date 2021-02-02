@@ -4,6 +4,12 @@
 
 #include "pixel_feature_extractor.h"
 
+#include "aligned_edge_detection.h"
+#include "average_frames.h"
+#include "color_commonality_filter.h"
+#include "convert_image.h"
+#include "high_pass_filter.h"
+
 #include <arrows/vxl/image_container.h>
 
 #include <vil/vil_convert.h>
@@ -26,11 +32,13 @@ namespace vxl {
 class pixel_feature_extractor::priv
 {
 public:
-  priv()
-  {
-  }
-};
 
+  vxl::aligned_edge_detection aligned_edge_detection_filter;
+  vxl::average_frames average_frames_filter;
+  vxl::convert_image convert_image_filter;
+  vxl::color_commonality_filter color_commonality_filter;
+  vxl::high_pass_filter high_pass_filter;
+};
 
 // ----------------------------------------------------------------------------
 pixel_feature_extractor
@@ -86,12 +94,49 @@ pixel_feature_extractor
     return kwiver::vital::image_container_sptr();
   }
 
-  // Get input image
-  vil_image_view_base_sptr view =
-    vxl::image_container::vital_to_vxl( image_data->get_image() );
+  auto aligned_edge = d->aligned_edge_detection_filter.filter( image_data );
+  auto averaged = d->average_frames_filter.filter( image_data );
+  auto converted = d->convert_image_filter.filter( image_data );
+  auto color_commonality = d->color_commonality_filter.filter( image_data );
+  auto high_pass = d->high_pass_filter.filter( image_data );
 
-  LOG_ERROR( logger(), "Invalid output format type received" );
-  return kwiver::vital::image_container_sptr();
+  std::vector< vil_image_view< vxl_byte > > filtered_images;
+  filtered_images.push_back(
+      vxl::image_container::vital_to_vxl( aligned_edge->get_image() ) );
+  filtered_images.push_back(
+      vxl::image_container::vital_to_vxl( averaged->get_image() ) );
+  filtered_images.push_back(
+      vxl::image_container::vital_to_vxl( converted->get_image() ) );
+  filtered_images.push_back(
+      vxl::image_container::vital_to_vxl( color_commonality->get_image() ) );
+  filtered_images.push_back(
+      vxl::image_container::vital_to_vxl( high_pass->get_image() ) );
+
+  // Count the total number of planes
+  size_t total_planes = 0;
+  for( auto const& image : filtered_images )
+  {
+    total_planes += image.nplanes();
+  }
+
+  size_t ni = filtered_images.at( 0 ).ni();
+  size_t nj = filtered_images.at( 0 ).nj();
+  vil_image_view< vxl_byte > concatenated_out( ni, nj, total_planes );
+
+  // Concatenate the filtered images into a single output
+  size_t current_plane = 0;
+  for( auto const& image : filtered_images )
+  {
+    for( size_t i = 0; i < image.nplanes(); ++i )
+    {
+      vil_plane( concatenated_out, current_plane ) = vil_plane( image, i );
+      ++current_plane;
+    }
+  }
+
+  vxl::image_container vxl_concatenated_out_container( concatenated_out );
+  return std::make_shared< vxl::image_container >(
+    vxl_concatenated_out_container );
 }
 
 } // end namespace vxl
