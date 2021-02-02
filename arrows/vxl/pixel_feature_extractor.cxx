@@ -125,16 +125,18 @@ pixel_feature_extractor
 
   // Concatenate the filtered images into a single output
   size_t current_plane = 0;
+
   for( auto const& image : filtered_images )
   {
     for( size_t i = 0; i < image.nplanes(); ++i )
     {
-      vil_plane( concatenated_out, current_plane ) = vil_plane( image, i );
+      vil_plane( concatenated_out, current_plane ).deep_copy( vil_plane( image, i ) );
       ++current_plane;
     }
   }
 
-  vxl::image_container vxl_concatenated_out_container( concatenated_out );
+  vxl::image_container vxl_concatenated_out_container(
+    concatenated_out );
   return std::make_shared< vxl::image_container >(
     vxl_concatenated_out_container );
 }

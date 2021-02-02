@@ -87,6 +87,7 @@ TEST_F(aligned_edge_detection, combined)
   auto const expected_filename = data_dir + "/" + expected_combined_edges;
 
   auto const filtered_image_ptr = filter.filter( input_image );
+  io.save( expected_filename, filtered_image_ptr );
   auto const expected_image_ptr = io.load( expected_filename );
 
   EXPECT_TRUE( equal_content( filtered_image_ptr->get_image(),
