@@ -141,7 +141,15 @@ hashed_image_classifier_filter
   if( lower_gsd_threshold >= upper_gsd_threshold )
   {
     LOG_ERROR( logger(),
-               "Lower GSD threshold higher that upper GSD threshold" );
+               "Lower GSD threshold higher than upper GSD threshold" );
+    return false;
+  }
+
+  std::string default_filename = config->get_value< std::string >( "default_filename" );
+  if( !d->classifier.load_from_file( default_filename ) )
+  {
+    LOG_ERROR( logger(),
+               "Could not load default model" );
     return false;
   }
   return true;
