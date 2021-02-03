@@ -76,9 +76,9 @@ aligned_edge_detection::priv
   output.fill( 0 );
 
   // Perform non-maximum suppression
-  for( unsigned j = 1; j < nj - 1; j++ )
+  for( decltype(+nj) j = 1; j < nj - 1; j++ )
   {
-    for( unsigned i = 1; i < ni - 1; i++ )
+    for( decltype(+ni) i = 1; i < ni - 1; i++ )
     {
       const InputType val_i = grad_i( i, j );
       const InputType val_j = grad_j( i, j );
@@ -254,23 +254,34 @@ aligned_edge_detection
 // ----------------------------------------------------------------------------
 kwiver::vital::image_container_sptr
 aligned_edge_detection
-::filter( kwiver::vital::image_container_sptr image_data )
+::filter( kwiver::vital::image_container_sptr source_image_ptr )
 {
+  if( !source_image_ptr )
+  {
+    LOG_ERROR( logger(), "Image pointer was not valid." );
+    return nullptr;
+  }
+
   // Get input image
   vil_image_view_base_sptr source_image =
-    vxl::image_container::vital_to_vxl( image_data->get_image() );
+    vxl::image_container::vital_to_vxl( source_image_ptr->get_image() );
 
   // Perform Basic Validation
-  if( !image_data )
+  if( !source_image )
   {
-    return kwiver::vital::image_container_sptr();
+    LOG_ERROR( logger(), "Image was not valid." );
+    return nullptr;
   }
 
   // Perform Basic Validation
-  if( !source_image || source_image->nplanes() != 1 )
+  if( source_image->nplanes() == 3 )
+  {
+    source_image = vil_convert_to_grey_using_average( source_image );
+  }
+  else if( source_image->nplanes() != 1 )
   {
     LOG_ERROR( logger(), "Input must be a grayscale image!" );
-    return {};
+    return nullptr;
   }
 
 #define HANDLE_CASE( T )                                          \
@@ -278,7 +289,7 @@ aligned_edge_detection
   {                                                               \
     using ipix_t = vil_pixel_format_type_of< T >::component_type; \
     auto filtered = d->filter< ipix_t >( source_image );          \
-    auto container = vxl::image_container( filtered );            \
+    auto container = vxl::image_container{ filtered };            \
     return std::make_shared< vxl::image_container >( container ); \
   }                                                               \
 
@@ -290,11 +301,11 @@ aligned_edge_detection
 #undef HANDLE_CASE
     default:
       LOG_ERROR( logger(), "Invalid input format type received" );
-      return {};
+      return nullptr;
   }
 
   LOG_ERROR( logger(), "Invalid output format type received" );
-  return {};
+  return nullptr;
 }
 
 } // end namespace vxl
