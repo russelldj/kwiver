@@ -1,0 +1,29 @@
+# ================================================================
+process input
+  :: video_input
+  video_filename   	= @EXAMPLE_DIR@/videos/drone-video.mp4
+  frame_time        	= .3333
+
+  video_reader:type	= vidl_ffmpeg
+
+# ================================================================
+process filter
+  ::image_filter
+  filter:type                    	= vxl_pixel_feature_extractor
+
+# ================================================================
+process writer
+  :: image_writer
+  image_writer:type                     = vxl
+  file_name_template                    = output/image%04d.png
+  image_writer:vxl:split_channels       = true
+
+
+# connections
+connect from input.image
+        to   filter.image
+
+connect from filter.image
+        to   writer.image
+
+# -- end of file --
