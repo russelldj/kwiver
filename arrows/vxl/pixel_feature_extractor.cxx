@@ -32,7 +32,6 @@ namespace vxl {
 class pixel_feature_extractor::priv
 {
 public:
-
   vxl::aligned_edge_detection aligned_edge_detection_filter;
   vxl::average_frames average_frames_filter;
   vxl::convert_image convert_image_filter;
@@ -114,6 +113,7 @@ pixel_feature_extractor
 
   // Count the total number of planes
   size_t total_planes = 0;
+
   for( auto const& image : filtered_images )
   {
     total_planes += image.nplanes();
@@ -130,7 +130,8 @@ pixel_feature_extractor
   {
     for( size_t i = 0; i < image.nplanes(); ++i )
     {
-      vil_plane( concatenated_out, current_plane ).deep_copy( vil_plane( image, i ) );
+      vil_plane( concatenated_out,
+                 current_plane ).deep_copy( vil_plane( image, i ) );
       ++current_plane;
     }
   }
