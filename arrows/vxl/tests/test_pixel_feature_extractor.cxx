@@ -47,6 +47,7 @@ class pixel_feature_extractor : public ::testing::Test
   TEST_ARG( data_dir );
 };
 
+// ----------------------------------------------------------------------------
 TEST_F ( pixel_feature_extractor, compute )
 {
   std::string filename = data_dir + "/" + test_color_image_name;
