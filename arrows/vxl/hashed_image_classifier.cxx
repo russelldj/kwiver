@@ -18,9 +18,9 @@ namespace vidtk {
 template < typename FeatureType, typename OutputType >
 void
 hashed_image_classifier< FeatureType, OutputType >
-::classify_images( const input_image_t& input_features,
-                   weight_image_t& output_image,
-                 const weight_t offset ) const
+::classify_image( const input_image_t& input_features,
+                  weight_image_t& output_image,
+                  const weight_t offset ) const
 {
   feature_vector_t input_features_vector;
   unsigned num_planes = input_features.nplanes();
@@ -29,7 +29,7 @@ hashed_image_classifier< FeatureType, OutputType >
     input_features_vector.push_back( vil_plane( input_features, i ) );
   }
   classify_images( &input_features_vector[ 0 ],
-                   input_features.size(),
+                   input_features_vector.size(),
                    output_image,
                    offset );
 }
@@ -59,11 +59,14 @@ hashed_image_classifier< FeatureType, OutputType >
 {
   if( !model_->is_valid() )
   {
-    // LOG_ERROR( , "Internal classifier invalid" );
+    std::cout << "Internal classifier invalid" << std::endl;
   }
+
   if( features != feature_count() )
   {
-    // LOG_ASSERT( features == feature_count(), "Feature counts don't match" );
+    std::cout << "Feature counts dont' match, features: "
+              << features << ", feature_count(): " << feature_count()
+              << std::endl;
   }
 
   output_image.set_size( input_features[ 0 ].ni(), input_features[ 0 ].nj() );
@@ -170,7 +173,7 @@ hashed_image_classifier< FeatureType, OutputType >
 
   if( !input.is_open() )
   {
-    // LOG_ERROR( "Unable to open input file: " << file );
+    std::cout << "Unable to open input file: " << file << std::endl;
     return false;
   }
 
@@ -227,7 +230,7 @@ hashed_image_classifier< FeatureType, OutputType >
       // Make sure the model file has at least 1 input feature
       if( model_->num_features == 0 )
       {
-        // LOG_ERROR( "Number of input features to use must be > 1" );
+        std::cout << "Number of input features to use must be > 1" << std::endl;
         return false;
       }
 
@@ -251,8 +254,8 @@ hashed_image_classifier< FeatureType, OutputType >
     // Data corruption, model file ill formatted
     if( parsed.size() != num_values + 1  || entry >= model_->num_features )
     {
-      // LOG_ERROR( "Number of weights (" << parsed.size()-1 << ") does not
-      // match " << num_values );
+      std::cout << "Number of weights (" << parsed.size()-1
+                << ") does not match " << num_values;
       return false;
     }
 
@@ -269,8 +272,7 @@ hashed_image_classifier< FeatureType, OutputType >
   // the specified number of features specified
   if( weights.size() != model_->num_features )
   {
-    // LOG_ERROR( "Weight vector size does not match " << model_->num_features
-    // );
+    std::cout << "Weight vector size does not match " << model_->num_features;
     return false;
   }
 
@@ -305,6 +307,7 @@ hashed_image_classifier< FeatureType, OutputType >
     }
   }
 
+  std::cout << "model->num_features " << model_->num_features << std::endl;
   return true;
 }
 
@@ -359,6 +362,7 @@ hashed_image_classifier_model< FloatType >
   {
     return true;
   }
+  std::cout << "num_features: " << num_features << std::endl;
 
   return false;
 }

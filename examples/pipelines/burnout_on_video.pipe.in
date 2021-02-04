@@ -12,6 +12,12 @@ process filter
   filter:type                    	= vxl_pixel_feature_extractor
 
 # ================================================================
+process classifier
+  ::image_filter
+  filter:type                    	= vxl_hashed_image_classifier_filter
+  classifier:vxl_hashed_image_classifier_filter:default_filename = /home/local/KHQ/david.russell/data/default_600
+
+# ================================================================
 process writer
   :: image_writer
   image_writer:type                     = vxl
@@ -24,6 +30,9 @@ connect from input.image
         to   filter.image
 
 connect from filter.image
+        to   classifier.image
+
+connect from classifier.image
         to   writer.image
 
 # -- end of file --

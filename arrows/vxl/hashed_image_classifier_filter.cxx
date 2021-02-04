@@ -11,6 +11,7 @@
 #include <vil/vil_image_view.h>
 #include <vil/vil_math.h>
 #include <vil/vil_plane.h>
+#include <vil/algo/vil_threshold.h>
 
 #include <cstdlib>
 #include <limits>
@@ -35,12 +36,14 @@ public:
   template < typename ipix_t, typename opix_t > vil_image_view< opix_t >
   scale( vil_image_view< ipix_t > input );
 
-  vidtk::hashed_image_classifier< uint16_t, double > classifier;
+  vidtk::hashed_image_classifier< vxl_byte, double > hashed_classifier;
+  bool model_loaded = false;
 
   bool use_variable_models = false;
   float lower_gsd_threshold = 0.11;
   float upper_gsd_threshold = 0.22;
-  std::string default_filename = "";
+  // TODO figure out why this isn't being set through the config
+  std::string default_filename = "/home/local/KHQ/david.russell/data/BurnOut_config/models/pixel_classifiers/default_600_13";
   std::string eo_narrow_filename = "";
   std::string eo_medium_filename = "";
   std::string eo_wide_filename = "";
@@ -145,13 +148,6 @@ hashed_image_classifier_filter
     return false;
   }
 
-  std::string default_filename = config->get_value< std::string >( "default_filename" );
-  if( !d->classifier.load_from_file( default_filename ) )
-  {
-    LOG_ERROR( logger(),
-               "Could not load default model" );
-    return false;
-  }
   return true;
 }
 
@@ -172,13 +168,33 @@ hashed_image_classifier_filter
   // Get input image
   vil_image_view_base_sptr view =
     vxl::image_container::vital_to_vxl( image_data->get_image() );
+
+  if( !view )
+  {
+    LOG_ERROR( logger(), "Data contained in the image container is null" );
+    return nullptr;
+  }
+
+  if( !d->model_loaded )
+  {
+  if( !d->hashed_classifier.load_from_file( d->default_filename ) )
+    {
+      LOG_ERROR( logger(),
+                 "Could not load default model" );
+      return nullptr;
+    }
+    d->model_loaded = true;
+  }
+
   vil_image_view< double > weight_image;
+
 
   #define HANDLE_CASE( T )                                              \
   case T:                                                               \
   {                                                                     \
     typedef vil_pixel_format_type_of< T >::component_type i_pix;        \
-    d->classifier.classify_images( vil_image_view<double>(), weight_image, 0.0 );           \
+    vil_image_view< i_pix > typed_view = static_cast< vil_image_view< i_pix > >( view );   \
+    d->hashed_classifier.classify_image( typed_view, weight_image, 0.0 );      \
     break;                                                              \
   }                                                                     \
 
@@ -194,7 +210,11 @@ hashed_image_classifier_filter
     }
   }
 
-  return std::make_shared< vxl::image_container>( weight_image );
+  vil_image_view< vxl_byte > binarized;
+  //vil_threshold_above( weight_image, binarized, 0.0 );
+  vil_transform( weight_image, binarized, [](double pix){ return 255; });
+
+  return std::make_shared< vxl::image_container>( binarized );
 }
 
 } // end namespace vxl
