@@ -48,8 +48,8 @@ public:
   bool use_variable_models = false;
   float lower_gsd_threshold = 0.11;
   float upper_gsd_threshold = 0.22;
-  // TODO figure out why this isn't being set through the config
-  std::string default_filename = "/home/local/KHQ/david.russell/data/BurnOut_config/models/pixel_classifiers/default_600_13";
+
+  std::string default_filename = "";
   std::string eo_narrow_filename = "";
   std::string eo_medium_filename = "";
   std::string eo_wide_filename = "";
@@ -67,7 +67,7 @@ hashed_image_classifier_filter::priv
   if( !hashed_classifier.load_from_file( default_filename ) )
     {
       LOG_ERROR( p->logger(),
-                 "Could not load default model" );
+                 "Could not load default_filename model" );
       return false;
     }
     model_loaded = true;

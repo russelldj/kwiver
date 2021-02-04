@@ -64,7 +64,7 @@ hashed_image_classifier< FeatureType, OutputType >
 
   if( features != feature_count() )
   {
-    std::cout << "Feature counts dont' match, features: "
+    std::cout << "Feature counts don't match, features: "
               << features << ", feature_count(): " << feature_count()
               << std::endl;
   }
