@@ -1,46 +1,41 @@
-/*ckwg +5
- * Copyright 2012-2015 by Kitware, Inc. All Rights Reserved. Please refer to
- * KITWARE_LICENSE.TXT for licensing information, or contact General Counsel,
- * Kitware, Inc., 28 Corporate Drive, Clifton Park, NY 12065.
- */
+// This file is part of KWIVER, and is distributed under the
+// OSI-approved BSD 3-Clause License. See top-level LICENSE file or
+// https://github.com/Kitware/kwiver/blob/master/LICENSE for details.
 
 #ifndef VIDTK_HASHED_IMAGE_CLASSIFIER_H_
 #define VIDTK_HASHED_IMAGE_CLASSIFIER_H_
 
+#include <vgl/vgl_box_2d.h>
 #include <vil/vil_image_view.h>
 #include <vil/vil_rgb.h>
-#include <vgl/vgl_box_2d.h>
 
-#include <iostream>
-#include <vector>
-#include <limits>
 #include <fstream>
+#include <iostream>
+#include <limits>
+#include <vector>
 
 #include <boost/shared_ptr.hpp>
 
-namespace vidtk
-{
+namespace vidtk {
 
+template < typename FeatureType,
+           typename OutputType > class hashed_image_classifier;
 
-template <typename FeatureType, typename OutputType >
-class hashed_image_classifier;
-
-
-/// \brief Internal data required for the hashed_image_classifier class.
-/**
- * The data members of this class are exposed just in case any external functions
- * or processes want to train their own models, usually in an online fashion.
- */
-template <typename FloatType = double>
+/// Internal data required for the hashed_image_classifier class.
+///
+/// The data members of this class are exposed just in case any external
+/// functions or processes want to train their own models, usually in an
+/// online fashion.
+template < typename FloatType = double >
 class hashed_image_classifier_model
 {
 public:
-
   typedef hashed_image_classifier_model< FloatType > self_t;
   typedef FloatType weight_t;
 
   hashed_image_classifier_model() : num_features( 0 ) {}
   hashed_image_classifier_model( const self_t& other );
+
   virtual ~hashed_image_classifier_model() {}
 
   // Number of features
@@ -68,44 +63,47 @@ public:
   void normalize( weight_t total_weight = 1.0 );
 };
 
-
-/// \brief Stream operator declaration for the hashed_image_classifier model class.
-template <typename FloatType >
-std::ostream& operator<<( std::ostream& os,
-  const hashed_image_classifier_model< FloatType >& obj );
-
+/// \brief Stream operator declaration for the hashed_image_classifier model
+/// class.
+template < typename FloatType > std::ostream& operator<<( std::ostream& os,
+                                                          const hashed_image_classifier_model< FloatType >& obj );
 
 /// \brief Stream operator declaration for the hashed_image_classifier class.
-template <typename FeatureType, typename OutputType >
-std::ostream& operator<<( std::ostream& os,
-  const hashed_image_classifier< FeatureType, OutputType >& obj );
+template < typename FeatureType, typename OutputType > std::ostream& operator<<(
+  std::ostream& os,
+  const hashed_image_classifier< FeatureType,
+                                 OutputType >& obj );
 
+/// \brief A classifier designed to efficiently classifying every pixel in an
+/// image.
 
-/// \brief A classifier designed to efficiently classifying every pixel in an image.
 /**
- * Every feature (for every pixel) is required to be mapped onto unsigned integral
+ * Every feature (for every pixel) is required to be mapped onto unsigned
+ * integral
  * type HashType before input. For every possible value of this hashed mapping,
  * and for every feature, a single weight must be given (in a model file) which
  * contributes to some binary decision about said pixel.
  *
- * More formally, for every feature at location i,j, ie, f(i,j,0), f(i,j,1) f(i,j,...)
+ * More formally, for every feature at location i,j, ie, f(i,j,0), f(i,j,1)
+ * f(i,j,...)
  * the output classification is given as:
  *
  *                      c(i,j) = sum( w_{k}[ f(i,j,k) ] )
  *
  *        for every feature k, and some corresponding weight vector w_{k}
  *
- * Typically these models may be specified manually, created with the help of constructs
- * such as parzen window estimates, or learned via supervised learning techniques
+ * Typically these models may be specified manually, created with the help of
+ * constructs
+ * such as parzen window estimates, or learned via supervised learning
+ * techniques
  * such as using boosted linear discriminants. Compared against other modern
  * classifiers, it places significant constraints on how features can be used
  * together in favor of efficiency.
  */
-template <typename FeatureType, typename OutputType = double>
+template < typename FeatureType, typename OutputType = double >
 class hashed_image_classifier
 {
 public:
-
   typedef OutputType weight_t;
   typedef vil_image_view< weight_t > weight_image_t;
   typedef vil_image_view< bool > mask_image_t;
@@ -123,8 +121,10 @@ public:
   virtual ~hashed_image_classifier() {}
 
   /// \brief Load a model from a file.
+
   /**
-   * The model file should be specified in the following format, where bracketed
+   * The model file should be specified in the following format, where
+   * bracketed
    * items should be replaced by values:
    *
    * [Number of features]
@@ -136,8 +136,8 @@ public:
 
   /// Classify a feature array, in addition to adding offset to each pixel.
   virtual void classify_image( const input_image_t& input_features,
-                                weight_image_t& output_image,
-                                const weight_t offset = 0.0 ) const;
+                               weight_image_t& output_image,
+                               const weight_t offset = 0.0 ) const;
 
   /// Classify a feature array, in addition to adding offset to each pixel.
   virtual void classify_images( const feature_vector_t& input_features,
@@ -169,24 +169,24 @@ public:
                                       const unsigned& feature_id ) const;
 
   /// Returns the number of features the loaded model contains info for.
-  virtual unsigned feature_count() const { return model_->num_features; }
+  virtual unsigned
+  feature_count() const { return model_->num_features; }
 
   /// Was a valid model loaded by this classifier?
-  virtual bool is_valid() const { return model_ && model_->is_valid(); }
+  virtual bool
+  is_valid() const { return model_ && model_->is_valid(); }
 
   /// Set the internal model from some external source.
   virtual void set_model( model_sptr_t external_model );
 
   /// The stream operator function for writing out models.
-  friend std::ostream& operator<< <>( std::ostream& os, const self_t& obj );
+  friend std::ostream& operator<<<>( std::ostream& os, const self_t& obj );
 
 protected:
-
   // A pointer to our internal data
   model_sptr_t model_;
-
 };
 
-}
+} // namespace vidtk
 
 #endif // vidtk_hashed_image_classifier_h_

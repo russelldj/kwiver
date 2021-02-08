@@ -2,16 +2,16 @@
 // OSI-approved BSD 3-Clause License. See top-level LICENSE file or
 // https://github.com/Kitware/kwiver/blob/master/LICENSE for details.
 
-#include "hashed_image_classifier_filter.h"
 #include "hashed_image_classifier.h"
+#include "hashed_image_classifier_filter.h"
 
 #include <arrows/vxl/image_container.h>
 
+#include <vil/algo/vil_threshold.h>
 #include <vil/vil_convert.h>
 #include <vil/vil_image_view.h>
 #include <vil/vil_math.h>
 #include <vil/vil_plane.h>
-#include <vil/algo/vil_threshold.h>
 
 #include <cstdlib>
 #include <limits>
@@ -28,6 +28,8 @@ namespace vxl {
 class hashed_image_classifier_filter::priv
 {
 public:
+
+  // --------------------------------------------------------------------------
   priv( hashed_image_classifier_filter* parent ) : p{ parent }
   {
   }
@@ -46,8 +48,8 @@ public:
   bool model_loaded = false;
 
   bool use_variable_models = false;
-  float lower_gsd_threshold = 0.11;
-  float upper_gsd_threshold = 0.22;
+  float lower_gsd_threshold{ 0.11 };
+  float upper_gsd_threshold{ 0.22 };
 
   std::string default_filename = "";
   std::string eo_narrow_filename = "";
@@ -58,13 +60,14 @@ public:
   std::string ir_wide_filename = "";
 };
 
+// ----------------------------------------------------------------------------
 bool
 hashed_image_classifier_filter::priv
 ::load_model()
 {
   if( !model_loaded )
   {
-  if( !hashed_classifier.load_from_file( default_filename ) )
+    if( !hashed_classifier.load_from_file( default_filename ) )
     {
       LOG_ERROR( p->logger(),
                  "Could not load default_filename model" );
@@ -83,11 +86,13 @@ hashed_image_classifier_filter
   attach_logger( "arrows.vxl.hashed_image_classifier_filter" );
 }
 
+// ----------------------------------------------------------------------------
 hashed_image_classifier_filter
 ::~hashed_image_classifier_filter()
 {
 }
 
+// ----------------------------------------------------------------------------
 vital::config_block_sptr
 hashed_image_classifier_filter
 ::get_configuration() const
@@ -127,9 +132,10 @@ void
 hashed_image_classifier_filter
 ::set_configuration( vital::config_block_sptr in_config )
 {
-  // Starting with our generated vital::config_block to ensure that assumed
-  // values are present. An alternative is to check for key presence before
+  // Start with our generated vital::config_block to ensure that assumed values
+  // are present. An alternative would be to check for key presence before
   // performing a get_value() call.
+
   vital::config_block_sptr config = this->get_configuration();
   config->merge_config( in_config );
 
@@ -213,9 +219,11 @@ hashed_image_classifier_filter
   d->hashed_classifier.classify_image( view, weight_image, 0.0 );
 
   vil_image_view< vxl_byte > binarized;
-  vil_transform( weight_image, binarized, [](double pix){ return pix < 0 ? 0 : 255; });
+  vil_transform( weight_image, binarized, []( double pix ){
+                   return pix < 0 ? 0 : 255;
+                 } );
 
-  return std::make_shared< vxl::image_container>( binarized );
+  return std::make_shared< vxl::image_container >( binarized );
 }
 
 } // end namespace vxl

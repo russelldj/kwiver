@@ -1,8 +1,6 @@
-/*ckwg +5
- * Copyright 2012-2015 by Kitware, Inc. All Rights Reserved. Please refer to
- * KITWARE_LICENSE.TXT for licensing information, or contact General Counsel,
- * Kitware, Inc., 28 Corporate Drive, Clifton Park, NY 12065.
- */
+// This file is part of KWIVER, and is distributed under the
+// OSI-approved BSD 3-Clause License. See top-level LICENSE file or
+// https://github.com/Kitware/kwiver/blob/master/LICENSE for details.
 
 #include "hashed_image_classifier.h"
 
@@ -14,6 +12,7 @@
 
 namespace vidtk {
 
+// ----------------------------------------------------------------------------
 // Classify a chain of hashed feature images
 template < typename FeatureType, typename OutputType >
 void
@@ -23,8 +22,8 @@ hashed_image_classifier< FeatureType, OutputType >
                   const weight_t offset ) const
 {
   feature_vector_t input_features_vector;
-  unsigned num_planes = input_features.nplanes();
-  for( unsigned i = 0; i < num_planes; ++i )
+  auto num_planes = input_features.nplanes();
+  for( unsigned i{ 0 }; i < num_planes; ++i )
   {
     input_features_vector.push_back( vil_plane( input_features, i ) );
   }
@@ -34,6 +33,7 @@ hashed_image_classifier< FeatureType, OutputType >
                    offset );
 }
 
+// ----------------------------------------------------------------------------
 // Classify a chain of hashed feature images
 template < typename FeatureType, typename OutputType >
 void
@@ -48,6 +48,7 @@ hashed_image_classifier< FeatureType, OutputType >
                    offset );
 }
 
+// ----------------------------------------------------------------------------
 // Classify a chain of hashed feature images
 template < typename FeatureType, typename OutputType >
 void
@@ -64,9 +65,9 @@ hashed_image_classifier< FeatureType, OutputType >
 
   if( features != feature_count() )
   {
-    std::cout << "Feature counts don't match, features: "
-              << features << ", feature_count(): " << feature_count()
-              << std::endl;
+    std::cout   << "Feature counts don't match, features: "
+                << features << ", feature_count(): " << feature_count()
+                << std::endl;
   }
 
   output_image.set_size( input_features[ 0 ].ni(), input_features[ 0 ].nj() );
@@ -77,12 +78,12 @@ hashed_image_classifier< FeatureType, OutputType >
   std::vector< std::ptrdiff_t > sisteps( features );
   std::vector< const input_t* > spixels( features );
 
-  for( unsigned f = 0; f < features; f++ )
+  for( decltype( +features ) f{ 0 }; f < features; f++ )
   {
     sisteps[ f ] = input_features[ f ].istep();
   }
 
-  const std::ptrdiff_t distep = output_image.istep();
+  auto const distep = output_image.istep();
 
   for( unsigned j = 0; j < output_image.nj(); j++ )
   {
@@ -104,6 +105,7 @@ hashed_image_classifier< FeatureType, OutputType >
   }
 }
 
+// ----------------------------------------------------------------------------
 // Classify some chain of hashed input images, but only on specific pixels
 // as decided by the given mask
 template < typename FeatureType, typename OutputType >
@@ -121,6 +123,7 @@ hashed_image_classifier< FeatureType, OutputType >
                    offset );
 }
 
+// ----------------------------------------------------------------------------
 // Classify some chain of hashed input images, but only on specific pixels
 // as decided by the given mask
 template < typename FeatureType, typename OutputType >
@@ -132,9 +135,14 @@ hashed_image_classifier< FeatureType, OutputType >
                    weight_image_t& output_image,
                    const weight_t offset ) const
 {
-  // LOG_ASSERT( model_->is_valid(), "Internal classifier is invalid" );
-  // LOG_ASSERT( features == model_->num_features, "Feature counts don't match"
-  // );
+  if( !model_->is_valid() )
+  {
+    std::cerr << "Internal classifier is invalid" << std::endl;
+  }
+  if( features != model_->num_features )
+  {
+    std::cerr << "Feature counts don't match" << std::endl;
+  }
 
   output_image.set_size( input_features[ 0 ].ni(), input_features[ 0 ].nj() );
 
@@ -160,6 +168,7 @@ hashed_image_classifier< FeatureType, OutputType >
   }
 }
 
+// ----------------------------------------------------------------------------
 // Load a model from file
 template < typename FeatureType, typename OutputType >
 bool
@@ -230,7 +239,8 @@ hashed_image_classifier< FeatureType, OutputType >
       // Make sure the model file has at least 1 input feature
       if( model_->num_features == 0 )
       {
-        std::cout << "Number of input features to use must be > 1" << std::endl;
+        std::cout << "Number of input features to use must be > 1" <<
+          std::endl;
         return false;
       }
 
@@ -254,7 +264,7 @@ hashed_image_classifier< FeatureType, OutputType >
     // Data corruption, model file ill formatted
     if( parsed.size() != num_values + 1  || entry >= model_->num_features )
     {
-      std::cout << "Number of weights (" << parsed.size()-1
+      std::cout << "Number of weights (" << parsed.size() - 1
                 << ") does not match " << num_values;
       return false;
     }
@@ -311,6 +321,7 @@ hashed_image_classifier< FeatureType, OutputType >
   return true;
 }
 
+// ----------------------------------------------------------------------------
 template < typename FeatureType, typename OutputType >
 void
 hashed_image_classifier< FeatureType, OutputType >
@@ -332,24 +343,29 @@ hashed_image_classifier< FeatureType, OutputType >
   }
 }
 
+// ----------------------------------------------------------------------------
 template < typename FeatureType, typename OutputType >
 void
 hashed_image_classifier< FeatureType, OutputType >
 ::set_model( model_sptr_t external_model )
 {
-  // LOG_ASSERT( external_model->is_valid(), "Input model invalid" );
+  if( !external_model->is_valid() )
+  {
+    std::cout << "Input model invalid" << std::endl;
+  }
 
   model_ = external_model;
 }
 
+// ----------------------------------------------------------------------------
 template < typename FloatType >
 hashed_image_classifier_model< FloatType >
-
 ::hashed_image_classifier_model( const self_t& other )
 {
   *this = other;
 }
 
+// ----------------------------------------------------------------------------
 template < typename FloatType >
 bool
 hashed_image_classifier_model< FloatType >
@@ -367,6 +383,7 @@ hashed_image_classifier_model< FloatType >
   return false;
 }
 
+// ----------------------------------------------------------------------------
 template < typename FloatType >
 void
 hashed_image_classifier_model< FloatType >
@@ -390,6 +407,7 @@ hashed_image_classifier_model< FloatType >
   }
 }
 
+// ----------------------------------------------------------------------------
 template < typename FloatType >
 void
 hashed_image_classifier_model< FloatType >
@@ -413,6 +431,7 @@ hashed_image_classifier_model< FloatType >
   }
 }
 
+// ----------------------------------------------------------------------------
 template < typename FloatType >
 hashed_image_classifier_model< FloatType >&
 hashed_image_classifier_model< FloatType >
@@ -443,6 +462,7 @@ hashed_image_classifier_model< FloatType >
   return *this;
 }
 
+// ----------------------------------------------------------------------------
 template < typename FloatType >
 std::ostream&
 operator<<( std::ostream& os,
@@ -468,6 +488,7 @@ operator<<( std::ostream& os,
   return os;
 }
 
+// ----------------------------------------------------------------------------
 template < typename FeatureType, typename OutputType >
 std::ostream&
 operator<<( std::ostream& os,
@@ -484,6 +505,7 @@ operator<<( std::ostream& os,
   return os;
 }
 
+// Class instantiations
 template class vidtk::hashed_image_classifier_model< double >;
 template class vidtk::hashed_image_classifier_model< float >;
 
@@ -493,14 +515,18 @@ template class vidtk::hashed_image_classifier< vxl_byte, float >;
 template class vidtk::hashed_image_classifier< vxl_uint_16, double >;
 template class vidtk::hashed_image_classifier< vxl_uint_16, float >;
 
-template std::ostream& vidtk::operator<<( std::ostream& os,
-                                          const vidtk::hashed_image_classifier_model< float >& obj );
-template std::ostream& vidtk::operator<<( std::ostream& os,
-                                          const vidtk::hashed_image_classifier_model< double >& obj );
+template std::ostream& vidtk::operator<<(
+   std::ostream& os,
+   const vidtk::hashed_image_classifier_model< float >& obj );
+template std::ostream& vidtk::operator<<(
+  std::ostream& os,
+  const vidtk::hashed_image_classifier_model< double >& obj );
 
-template std::ostream& vidtk::operator<<( std::ostream& os,
-                                          const vidtk::hashed_image_classifier< vxl_byte, float >& obj );
-template std::ostream& vidtk::operator<<( std::ostream& os,
-                                          const vidtk::hashed_image_classifier< vxl_byte, double >& obj );
+template std::ostream& vidtk::operator<<(
+  std::ostream& os,
+  const vidtk::hashed_image_classifier< vxl_byte, float >& obj );
+template std::ostream& vidtk::operator<<(
+  std::ostream& os,
+  const vidtk::hashed_image_classifier< vxl_byte, double >& obj );
 
 } // end namespace vidtk

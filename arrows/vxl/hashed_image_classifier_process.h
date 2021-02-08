@@ -10,12 +10,11 @@
 #include "hashed_image_classifier.h"
 
 #include <vital/algo/image_filter.h>
-//#include <process_framework/process.h>
-//#include <process_framework/pipeline_aid.h>
+// #include <process_framework/process.h>
+// #include <process_framework/pipeline_aid.h>
 //
-//#include <utilities/config_block.h>
-//#include <utilities/video_modality.h>
-
+// #include <utilities/config_block.h>
+// #include <utilities/video_modality.h>
 
 #include <vil/vil_image_view.h>
 
@@ -29,12 +28,11 @@ namespace vxl {
 
 /// Classify every pixel in an image according to a hashed_image_feature
 /// classifier.
-template< typename HashType = vxl_byte, typename OutputType = double >
+template < typename HashType = vxl_byte, typename OutputType = double >
 class hashed_image_classifier_filter
   : public vital::algo::image_filter
 {
 public:
-
   typedef hashed_image_classifier_filter self_type;
   typedef std::vector< vil_image_view< HashType > > input_features;
   typedef hashed_image_classifier< HashType, OutputType > classifier;
@@ -59,11 +57,10 @@ public:
   VIDTK_INPUT_PORT( set_modality, vidtk::video_modality );
 
   /// Classified output image
-  vil_image_view<OutputType> classified_image() const;
-  VIDTK_OUTPUT_PORT( vil_image_view<OutputType>, classified_image );
+  vil_image_view< OutputType > classified_image() const;
+  VIDTK_OUTPUT_PORT( vil_image_view< OutputType >, classified_image );
 
 private:
-
   // Are we using different classifiers for GSD/modalities?
   bool use_variable_models_;
 
@@ -91,18 +88,16 @@ private:
   vidtk::video_modality input_modality_;
 
   // Algorithm outputs
-  vil_image_view<OutputType> output_img_;
+  vil_image_view< OutputType > output_img_;
 
   // Helper functions
   void reset_inputs();
 };
 
+} // namespace vxl
 
-}
+} // namespace arrows
 
-}
-
-}
-
+} // namespace kwiver
 
 #endif // vidtk_hashed_image_classifier_process_h_
