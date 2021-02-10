@@ -120,36 +120,39 @@ pixel_feature_extractor::priv
     if( enable_color ){
       filtered_images.push_back( vxl_image );
     }
+
     if( enable_gray )
     {
+      // TODO check whether this should be vil_convert_to_grey_using_rgb_weighting
       filtered_images.push_back( vil_convert_to_grey_using_average( vxl_image ) );
     }
-
   }
 
-  if( enable_aligned_edge ){
-    filtered_images.push_back(
-        vxl::image_container::vital_to_vxl( aligned_edge->get_image() ) );
-  }
-  if( enable_average )
-  {
-    filtered_images.push_back(
-        vxl::image_container::vital_to_vxl( averaged->get_image() ) );
-  }
   if( enable_color_commonality )
   {
     filtered_images.push_back(
         vxl::image_container::vital_to_vxl( converted->get_image() ) );
+  }
+  // TODO this should also have one which does the other sort of filtering
+  if( enable_high_pass )
+  {
+    filtered_images.push_back(
+        vxl::image_container::vital_to_vxl( high_pass->get_image() ) );
   }
   if( enable_convert )
   {
     filtered_images.push_back(
         vxl::image_container::vital_to_vxl( color_commonality->get_image() ) );
   }
-  if( enable_high_pass )
+  // TODO this should be the variance instead
+  if( enable_average )
   {
     filtered_images.push_back(
-        vxl::image_container::vital_to_vxl( high_pass->get_image() ) );
+        vxl::image_container::vital_to_vxl( averaged->get_image() ) );
+  }
+  if( enable_aligned_edge ){
+    filtered_images.push_back(
+        vxl::image_container::vital_to_vxl( aligned_edge->get_image() ) );
   }
 
   vil_image_view< vxl_byte > concatenated_out =
