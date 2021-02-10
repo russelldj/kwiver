@@ -2,11 +2,6 @@
 // OSI-approved BSD 3-Clause License. See top-level LICENSE file or
 // https://github.com/Kitware/kwiver/blob/master/LICENSE for details.
 
-/**
- * \file
- * \brief test temporal average filtering
- */
-
 #include <test_gtest.h>
 
 #include <arrows/vxl/pixel_feature_extractor.h>
@@ -26,7 +21,6 @@ namespace ka = kwiver::arrows;
 
 kv::path_t g_data_dir;
 static std::string test_color_image_name = "images/small_color_logo.png";
-
 static std::string expected_name = "images/features_expected.png";
 
 // ----------------------------------------------------------------------------
@@ -48,28 +42,23 @@ class pixel_feature_extractor : public ::testing::Test
 };
 
 // ----------------------------------------------------------------------------
-TEST_F ( pixel_feature_extractor, compute )
+TEST_F(pixel_feature_extractor, compute_all)
 {
-  std::string filename = data_dir + "/" + test_color_image_name;
-
+  std::string input_filename = data_dir + "/" + test_color_image_name;
   std::string expected_filename = data_dir + "/" + expected_name;
 
   ka::vxl::pixel_feature_extractor filter;
-
   ka::vxl::image_io io;
 
-  auto const input = io.load( filename );
+  auto const input_image = io.load( input_filename );
+  auto const filtered = filter.filter( input_image );
 
-  auto const filtered = filter.filter( input );
-
+  // Many-plane images are saved in a per-channel format
   auto io_config = kv::config_block::empty_config();
   io_config->set_value( "split_channels", true );
   io.set_configuration( io_config );
 
-  io.save( expected_filename, filtered );
-
   auto const expected = io.load( expected_filename );
-
   EXPECT_TRUE( equal_content( filtered->get_image(),
                               expected->get_image() ) );
 }
