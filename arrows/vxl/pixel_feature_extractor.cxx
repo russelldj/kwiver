@@ -47,11 +47,16 @@ public:
 
   pixel_feature_extractor* p;
 
+  bool enable_aligned_edge{ true };
+  bool enable_average{ true };
+  bool enable_convert{ true };
+  bool enable_color_commonality{ true };
+  bool enable_high_pass{ true };
+
   vxl::aligned_edge_detection aligned_edge_detection_filter;
   vxl::average_frames average_frames_filter;
   vxl::convert_image convert_image_filter;
   vxl::color_commonality_filter color_commonality_filter;
-  // TODO add the edge filter
   vxl::high_pass_filter high_pass_filter;
 };
 
@@ -144,6 +149,22 @@ pixel_feature_extractor
   // get base config from base class
   vital::config_block_sptr config = algorithm::get_configuration();
 
+ config->set_value( "enable_aligned_edge",
+                     d->enable_aligned_edge,
+                     "Enable aligned_edge_detection filter." );
+ config->set_value( "enable_average",
+                     d->enable_average,
+                     "Enable average_frames filter." );
+ config->set_value( "enable_convert",
+                     d->enable_convert,
+                     "Enable convert_image filter." );
+ config->set_value( "enable_color_commonality",
+                     d->enable_color_commonality,
+                     "Enable color_commonality_filter filter." );
+ config->set_value( "enable_high_pass",
+                     d->enable_high_pass,
+                     "Enable high_pass_filter filter." );
+  // TODO determine whether the sub-blocks should be added
   return config;
 }
 
@@ -157,6 +178,19 @@ pixel_feature_extractor
   // performing a get_value() call.
   vital::config_block_sptr config = this->get_configuration();
   config->merge_config( in_config );
+
+  d->enable_aligned_edge = config->get_value< bool >( "enable_aligned_edge" );
+  d->enable_average = config->get_value< bool >( "enable_average" );
+  d->enable_convert = config->get_value< bool >( "enable_convert" );
+  d->enable_color_commonality = config->get_value< bool >( "enable_color_commonality" );
+  d->enable_high_pass = config->get_value< bool >( "enable_high_pass" );
+
+  // Configure the sub-algorithms
+  d->aligned_edge_detection_filter.set_configuration( config->subblock_view( "aligned_edge" ) );
+  d->average_frames_filter.set_configuration( config->subblock_view( "average" ) );
+  d->convert_image_filter.set_configuration( config->subblock_view( "convert" ) );
+  d->color_commonality_filter.set_configuration( config->subblock_view( "color_commonality" ) );
+  d->high_pass_filter.set_configuration( config->subblock_view( "high_pass" ) );
 }
 
 // ----------------------------------------------------------------------------
@@ -164,6 +198,16 @@ bool
 pixel_feature_extractor
 ::check_configuration( vital::config_block_sptr config ) const
 {
+  auto enable_aligned_edge = config->get_value< bool >( "enable_aligned_edge" );
+  auto enable_average = config->get_value< bool >( "enable_average" );
+  auto enable_convert = config->get_value< bool >( "enable_convert" );
+  auto enable_color_commonality = config->get_value< bool >( "enable_color_commonality" );
+  auto enable_high_pass = config->get_value< bool >( "enable_high_pass" );
+
+  if( !( enable_aligned_edge || enable_average || enable_convert || enable_color_commonality || enable_high_pass ) ){
+    LOG_ERROR( logger(), "At least one filter must be enabled" );
+    return false;
+  }
   return true;
 }
 
