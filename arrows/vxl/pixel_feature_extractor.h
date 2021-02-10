@@ -15,15 +15,13 @@ namespace arrows {
 
 namespace vxl {
 
-/**
- * @brief Extract multiple features from an image
- */
+/// Extract multiple features from an image
 class KWIVER_ALGO_VXL_EXPORT pixel_feature_extractor
   : public vital::algo::image_filter
 {
 public:
   PLUGIN_INFO( "vxl_pixel_feature_extractor",
-               "Extract pixel-level features from an image." )
+               "Extract various local pixel-wise features from an image." )
 
   pixel_feature_extractor();
   virtual ~pixel_feature_extractor();
@@ -36,14 +34,14 @@ public:
   /// Check that the algorithm's currently configuration is valid
   virtual bool check_configuration( vital::config_block_sptr config ) const;
 
-  /// Convert to the right type and optionally transform
+  /// extract local pixel-wise features
   virtual kwiver::vital::image_container_sptr filter(
     kwiver::vital::image_container_sptr image_data );
 
 private:
   class priv;
 
-  const std::unique_ptr< priv > d;
+  std::unique_ptr< priv > const d;
 };
 
 } // namespace vxl

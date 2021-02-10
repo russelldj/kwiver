@@ -28,10 +28,16 @@ namespace arrows {
 namespace vxl {
 
 // ----------------------------------------------------------------------------
-/// Private implementation class
+// Private implementation class
 class pixel_feature_extractor::priv
 {
 public:
+
+  // Copy multiple filtered images into contigious memory
+  template< typename pix_t >
+  vil_image_view< pix_t >
+  concatenate_images( std::vector< vil_image_view< pix_t > > filtered_images );
+
   vxl::aligned_edge_detection aligned_edge_detection_filter;
   vxl::average_frames average_frames_filter;
   vxl::convert_image convert_image_filter;
@@ -40,18 +46,52 @@ public:
 };
 
 // ----------------------------------------------------------------------------
+template< typename pix_t >
+vil_image_view< pix_t >
+pixel_feature_extractor::priv
+::concatenate_images( std::vector< vil_image_view< pix_t > > filtered_images )
+{
+  // Count the total number of planes
+  unsigned total_planes{ 0 };
+  for( auto const& image : filtered_images )
+  {
+    total_planes += image.nplanes();
+  }
+
+  if( total_planes == 0 )
+  {
+    //LOG_ERROR( p->logger(), "No filtered images provided"
+    return {};
+  }
+
+  auto const ni = filtered_images.at( 0 ).ni();
+  auto const nj = filtered_images.at( 0 ).nj();
+  vil_image_view< pix_t > concatenated_out{ ni, nj, total_planes };
+
+  // Concatenate the filtered images into a single output
+  unsigned current_plane = 0;
+
+  for( auto const& image : filtered_images )
+  {
+    for( unsigned i{ 0 }; i < image.nplanes(); ++i )
+    {
+      vil_plane( concatenated_out,
+                 current_plane ).deep_copy( vil_plane( image, i ) );
+      ++current_plane;
+    }
+  }
+  return concatenated_out;
+}
+
+// ----------------------------------------------------------------------------
 pixel_feature_extractor
 ::pixel_feature_extractor()
-  : d( new priv() )
+  : d{ new priv{} }
 {
   attach_logger( "arrows.vxl.pixel_feature_extractor" );
 }
 
-pixel_feature_extractor
-::~pixel_feature_extractor()
-{
-}
-
+// ----------------------------------------------------------------------------
 vital::config_block_sptr
 pixel_feature_extractor
 ::get_configuration() const
@@ -67,8 +107,8 @@ void
 pixel_feature_extractor
 ::set_configuration( vital::config_block_sptr in_config )
 {
-  // Starting with our generated vital::config_block to ensure that assumed
-  // values are present. An alternative is to check for key presence before
+  // Start with our generated vital::config_block to ensure that assumed values
+  // are present. An alternative would be to check for key presence before
   // performing a get_value() call.
   vital::config_block_sptr config = this->get_configuration();
   config->merge_config( in_config );
@@ -111,30 +151,8 @@ pixel_feature_extractor
   filtered_images.push_back(
       vxl::image_container::vital_to_vxl( high_pass->get_image() ) );
 
-  // Count the total number of planes
-  size_t total_planes = 0;
-
-  for( auto const& image : filtered_images )
-  {
-    total_planes += image.nplanes();
-  }
-
-  size_t ni = filtered_images.at( 0 ).ni();
-  size_t nj = filtered_images.at( 0 ).nj();
-  vil_image_view< vxl_byte > concatenated_out( ni, nj, total_planes );
-
-  // Concatenate the filtered images into a single output
-  size_t current_plane = 0;
-
-  for( auto const& image : filtered_images )
-  {
-    for( size_t i = 0; i < image.nplanes(); ++i )
-    {
-      vil_plane( concatenated_out,
-                 current_plane ).deep_copy( vil_plane( image, i ) );
-      ++current_plane;
-    }
-  }
+  vil_image_view< vxl_byte > concatenated_out =
+    d->concatenate_images< vxl_byte >( filtered_images );
 
   vxl::image_container vxl_concatenated_out_container(
     concatenated_out );
