@@ -117,10 +117,12 @@ pixel_feature_extractor::priv
   if( enable_color || enable_gray )
   {
     const auto vxl_image = vxl::image_container::vital_to_vxl( input_image->get_image() );
+    // 3 channels
     if( enable_color ){
       filtered_images.push_back( vxl_image );
     }
 
+    // 1 channel
     if( enable_gray )
     {
       // TODO check whether this should be vil_convert_to_grey_using_rgb_weighting
@@ -130,27 +132,37 @@ pixel_feature_extractor::priv
 
   if( enable_color_commonality )
   {
+    // 1 channel
     filtered_images.push_back(
-        vxl::image_container::vital_to_vxl( converted->get_image() ) );
+        vxl::image_container::vital_to_vxl( color_commonality->get_image() ) );
   }
   // TODO this should also have one which does the other sort of filtering
   if( enable_high_pass )
   {
+    // 2 channels
+    filtered_images.push_back(
+        vxl::image_container::vital_to_vxl( high_pass->get_image() ) );
+    // 2 channels
     filtered_images.push_back(
         vxl::image_container::vital_to_vxl( high_pass->get_image() ) );
   }
   if( enable_convert )
   {
+    // 3 channels
+    // This should be removed
     filtered_images.push_back(
-        vxl::image_container::vital_to_vxl( color_commonality->get_image() ) );
+        vxl::image_container::vital_to_vxl( converted->get_image() ) );
   }
   // TODO this should be the variance instead
   if( enable_average )
   {
+    // This should
+    // Variance should be 1 channel
     filtered_images.push_back(
         vxl::image_container::vital_to_vxl( averaged->get_image() ) );
   }
   if( enable_aligned_edge ){
+    // 2 channels
     filtered_images.push_back(
         vxl::image_container::vital_to_vxl( aligned_edge->get_image() ) );
   }
@@ -183,6 +195,12 @@ pixel_feature_extractor
   // get base config from base class
   vital::config_block_sptr config = algorithm::get_configuration();
 
+  config->set_value( "enable_color",
+                     d->enable_color,
+                     "Enable color channels." );
+  config->set_value( "enable_gray",
+                     d->enable_gray,
+                     "Enable grayscale channel." );
   config->set_value( "enable_aligned_edge",
                      d->enable_aligned_edge,
                      "Enable aligned_edge_detection filter." );
@@ -212,6 +230,8 @@ pixel_feature_extractor
   vital::config_block_sptr config = this->get_configuration();
   config->merge_config( in_config );
 
+  d->enable_color = config->get_value< bool >( "enable_color" );
+  d->enable_gray = config->get_value< bool >( "enable_gray" );
   d->enable_aligned_edge = config->get_value< bool >( "enable_aligned_edge" );
   d->enable_average = config->get_value< bool >( "enable_average" );
   d->enable_convert = config->get_value< bool >( "enable_convert" );
@@ -237,6 +257,8 @@ bool
 pixel_feature_extractor
 ::check_configuration( vital::config_block_sptr config ) const
 {
+  auto enable_color = config->get_value< bool >( "enable_color" );
+  auto enable_gray = config->get_value< bool >( "enable_gray" );
   auto enable_aligned_edge =
     config->get_value< bool >( "enable_aligned_edge" );
   auto enable_average = config->get_value< bool >( "enable_average" );
@@ -245,8 +267,9 @@ pixel_feature_extractor
     "enable_color_commonality" );
   auto enable_high_pass = config->get_value< bool >( "enable_high_pass" );
 
-  if( !( enable_aligned_edge || enable_average || enable_convert ||
-         enable_color_commonality || enable_high_pass ) )
+  if( !( enable_color || enable_gray || enable_aligned_edge ||
+         enable_average || enable_convert || enable_color_commonality ||
+         enable_high_pass ) )
   {
     LOG_ERROR( logger(), "At least one filter must be enabled" );
     return false;
