@@ -46,6 +46,8 @@ public:
 
   pixel_feature_extractor* p;
 
+  bool enable_color{ true };
+  bool enable_gray{ true };
   bool enable_aligned_edge{ true };
   bool enable_average{ true };
   bool enable_convert{ true };
@@ -111,16 +113,44 @@ pixel_feature_extractor::priv
   auto high_pass = high_pass_filter.filter( input_image );
 
   std::vector< vil_image_view< vxl_byte > > filtered_images;
-  filtered_images.push_back(
-      vxl::image_container::vital_to_vxl( aligned_edge->get_image() ) );
-  filtered_images.push_back(
-      vxl::image_container::vital_to_vxl( averaged->get_image() ) );
-  filtered_images.push_back(
-      vxl::image_container::vital_to_vxl( converted->get_image() ) );
-  filtered_images.push_back(
-      vxl::image_container::vital_to_vxl( color_commonality->get_image() ) );
-  filtered_images.push_back(
-      vxl::image_container::vital_to_vxl( high_pass->get_image() ) );
+
+  if( enable_color || enable_gray )
+  {
+    const auto vxl_image = vxl::image_container::vital_to_vxl( input_image->get_image() );
+    if( enable_color ){
+      filtered_images.push_back( vxl_image );
+    }
+    if( enable_gray )
+    {
+      filtered_images.push_back( vil_convert_to_grey_using_average( vxl_image ) );
+    }
+
+  }
+
+  if( enable_aligned_edge ){
+    filtered_images.push_back(
+        vxl::image_container::vital_to_vxl( aligned_edge->get_image() ) );
+  }
+  if( enable_average )
+  {
+    filtered_images.push_back(
+        vxl::image_container::vital_to_vxl( averaged->get_image() ) );
+  }
+  if( enable_color_commonality )
+  {
+    filtered_images.push_back(
+        vxl::image_container::vital_to_vxl( converted->get_image() ) );
+  }
+  if( enable_convert )
+  {
+    filtered_images.push_back(
+        vxl::image_container::vital_to_vxl( color_commonality->get_image() ) );
+  }
+  if( enable_high_pass )
+  {
+    filtered_images.push_back(
+        vxl::image_container::vital_to_vxl( high_pass->get_image() ) );
+  }
 
   vil_image_view< vxl_byte > concatenated_out =
     concatenate_images< vxl_byte >( filtered_images );
