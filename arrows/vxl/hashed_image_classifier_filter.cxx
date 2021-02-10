@@ -216,7 +216,7 @@ hashed_image_classifier_filter
   vil_image_view< double > weight_image;
 
   // TODO decide if this offset should be tunable
-  d->hashed_classifier.classify_image( view, weight_image, 0.0 );
+  d->hashed_classifier.classify_images( view, weight_image, 0.0 );
 
   vil_image_view< vxl_byte > binarized;
   vil_transform( weight_image, binarized, []( double pix ){
