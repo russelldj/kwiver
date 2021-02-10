@@ -2,8 +2,8 @@
 // OSI-approved BSD 3-Clause License. See top-level LICENSE file or
 // https://github.com/Kitware/kwiver/blob/master/LICENSE for details.
 
-#ifndef KWIVER_ARROWS_VXL_HASHED_IMAGE_CLASSIFIER_FILTER_
-#define KWIVER_ARROWS_VXL_HASHED_IMAGE_CLASSIFIER_FILTER_
+#ifndef KWIVER_ARROWS_VXL_CONVERT_IMAGE_
+#define KWIVER_ARROWS_VXL_CONVERT_IMAGE_
 
 #include <arrows/vxl/kwiver_algo_vxl_export.h>
 
@@ -15,16 +15,21 @@ namespace arrows {
 
 namespace vxl {
 
-/// Classify an image of features using a sum of linear classifiers
-class KWIVER_ALGO_VXL_EXPORT hashed_image_classifier_filter
+/**
+ * @brief Convert between VXL image formats.
+ *
+ * This can be used, for example, to turn a floating point image into
+ * a byte image and vice versa.
+ */
+class KWIVER_ALGO_VXL_EXPORT convert_image
   : public vital::algo::image_filter
 {
 public:
-  PLUGIN_INFO( "vxl_hashed_image_classifier_filter",
-               "Perform per-pixel classification on an image of features." )
+  PLUGIN_INFO( "vxl_convert_image",
+               "Convert image between different formats or scales." )
 
-  hashed_image_classifier_filter();
-  virtual ~hashed_image_classifier_filter();
+  convert_image();
+  virtual ~convert_image();
 
   /// Get this algorithm's \link vital::config_block configuration block
   /// \endlink
@@ -34,7 +39,7 @@ public:
   /// Check that the algorithm's currently configuration is valid
   virtual bool check_configuration( vital::config_block_sptr config ) const;
 
-  /// Perform per-pixel classification
+  /// Convert to the right type and optionally transform
   virtual kwiver::vital::image_container_sptr filter(
     kwiver::vital::image_container_sptr image_data );
 

@@ -2,8 +2,8 @@
 // OSI-approved BSD 3-Clause License. See top-level LICENSE file or
 // https://github.com/Kitware/kwiver/blob/master/LICENSE for details.
 
-#ifndef KWIVER_ARROWS_VXL_HASHED_IMAGE_CLASSIFIER_FILTER_
-#define KWIVER_ARROWS_VXL_HASHED_IMAGE_CLASSIFIER_FILTER_
+#ifndef KWIVER_ARROWS_VXL_AVERAGE_FRAMES_
+#define KWIVER_ARROWS_VXL_AVERAGE_FRAMES_
 
 #include <arrows/vxl/kwiver_algo_vxl_export.h>
 
@@ -15,16 +15,19 @@ namespace arrows {
 
 namespace vxl {
 
-/// Classify an image of features using a sum of linear classifiers
-class KWIVER_ALGO_VXL_EXPORT hashed_image_classifier_filter
+/// VXL Frame Averaging Process
+///
+/// This method contains basic methods for image filtering on top of input
+/// images via performing assorted averaging operations.
+class KWIVER_ALGO_VXL_EXPORT average_frames
   : public vital::algo::image_filter
 {
 public:
-  PLUGIN_INFO( "vxl_hashed_image_classifier_filter",
-               "Perform per-pixel classification on an image of features." )
+  PLUGIN_INFO( "vxl_average",
+               "Use VXL to average frames together." )
 
-  hashed_image_classifier_filter();
-  virtual ~hashed_image_classifier_filter();
+  average_frames();
+  virtual ~average_frames();
 
   /// Get this algorithm's \link vital::config_block configuration block
   /// \endlink
@@ -34,7 +37,7 @@ public:
   /// Check that the algorithm's currently configuration is valid
   virtual bool check_configuration( vital::config_block_sptr config ) const;
 
-  /// Perform per-pixel classification
+  /// Average frames temporally
   virtual kwiver::vital::image_container_sptr filter(
     kwiver::vital::image_container_sptr image_data );
 

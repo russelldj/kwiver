@@ -2,8 +2,8 @@
 // OSI-approved BSD 3-Clause License. See top-level LICENSE file or
 // https://github.com/Kitware/kwiver/blob/master/LICENSE for details.
 
-#ifndef KWIVER_ARROWS_VXL_HASHED_IMAGE_CLASSIFIER_FILTER_
-#define KWIVER_ARROWS_VXL_HASHED_IMAGE_CLASSIFIER_FILTER_
+#ifndef KWIVER_ARROWS_VXL_COLOR_COMMONALITY_FILTER_
+#define KWIVER_ARROWS_VXL_COLOR_COMMONALITY_FILTER_
 
 #include <arrows/vxl/kwiver_algo_vxl_export.h>
 
@@ -15,16 +15,21 @@ namespace arrows {
 
 namespace vxl {
 
-/// Classify an image of features using a sum of linear classifiers
-class KWIVER_ALGO_VXL_EXPORT hashed_image_classifier_filter
+/**
+ * @brief VXL Color Commonality Filter
+ *
+ * This method produces an output image where each pixel corresponds
+ * to how frequent the pixel's color is in the entire image.
+ */
+class KWIVER_ALGO_VXL_EXPORT color_commonality_filter
   : public vital::algo::image_filter
 {
 public:
-  PLUGIN_INFO( "vxl_hashed_image_classifier_filter",
-               "Perform per-pixel classification on an image of features." )
+  PLUGIN_INFO( "vxl_color_commonality",
+               "Filter image based on color frequency or commonality." )
 
-  hashed_image_classifier_filter();
-  virtual ~hashed_image_classifier_filter();
+  color_commonality_filter();
+  virtual ~color_commonality_filter();
 
   /// Get this algorithm's \link vital::config_block configuration block
   /// \endlink
@@ -34,7 +39,7 @@ public:
   /// Check that the algorithm's currently configuration is valid
   virtual bool check_configuration( vital::config_block_sptr config ) const;
 
-  /// Perform per-pixel classification
+  /// Perform pixel frequency computation for one frame
   virtual kwiver::vital::image_container_sptr filter(
     kwiver::vital::image_container_sptr image_data );
 

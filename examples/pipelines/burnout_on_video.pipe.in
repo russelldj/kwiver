@@ -1,0 +1,38 @@
+# ================================================================
+process input
+  :: video_input
+  video_filename   	= @EXAMPLE_DIR@/videos/drone-video.mp4
+  frame_time        	= .3333
+
+  video_reader:type	= vidl_ffmpeg
+
+# ================================================================
+process filter
+  ::image_filter
+  filter:type                    	= vxl_pixel_feature_extractor
+
+# ================================================================
+process classifier
+  ::image_filter
+  filter:type                    	= vxl_hashed_image_classifier_filter
+  filter:vxl_hashed_image_classifier_filter:default_filename = /home/local/KHQ/david.russell/data/BurnOut_config/models/pixel_classifiers/default_600_13
+
+# ================================================================
+process writer
+  :: image_writer
+  image_writer:type                     = vxl
+  file_name_template                    = output/image%04d.png
+  image_writer:vxl:split_channels       = true
+
+
+# connections
+connect from input.image
+        to   filter.image
+
+connect from filter.image
+        to   classifier.image
+
+connect from classifier.image
+        to   writer.image
+
+# -- end of file --

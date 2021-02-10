@@ -2,12 +2,16 @@
 # structures
 
 set(vxl_headers_public
+  aligned_edge_detection.h
+  average_frames.h
   bounding_box.h
   bundle_adjust.h
   camera.h
   camera_map.h
   close_loops_homography_guided.h
+  color_commonality_filter.h
   compute_homography_overlap.h
+  convert_image.h
   estimate_canonical_transform.h
   estimate_essential_matrix.h
   estimate_fundamental_matrix.h
@@ -15,10 +19,12 @@ set(vxl_headers_public
   estimate_similarity_transform.h
   hashed_image_classifier.h
   hashed_image_classifier_filter.h
+  high_pass_filter.h
   image_container.h
   image_io.h
   match_features_constrained.h
   optimize_cameras.h
+  pixel_feature_extractor.h
   polygon.h
   split_image.h
   triangulate_landmarks.h
@@ -37,11 +43,15 @@ kwiver_install_headers(
   )
 
 set(vxl_sources
+  aligned_edge_detection.cxx
+  average_frames.cxx
   bundle_adjust.cxx
   camera.cxx
   camera_map.cxx
   close_loops_homography_guided.cxx
+  color_commonality_filter.cxx
   compute_homography_overlap.cxx
+  convert_image.cxx
   estimate_canonical_transform.cxx
   estimate_essential_matrix.cxx
   estimate_fundamental_matrix.cxx
@@ -49,10 +59,12 @@ set(vxl_sources
   estimate_similarity_transform.cxx
   hashed_image_classifier.cxx
   hashed_image_classifier_filter.cxx
+  high_pass_filter.cxx
   image_container.cxx
   image_io.cxx
   match_features_constrained.cxx
   optimize_cameras.cxx
+  pixel_feature_extractor.cxx
   polygon.cxx
   split_image.cxx
   triangulate_landmarks.cxx
@@ -72,6 +84,7 @@ target_link_libraries( kwiver_algo_vxl
                        rrel rsdl
                        vnl
                        vidl
+                       vil_algo
                        vgl_algo
                        vpgl_algo
                        kwiversys

@@ -24,9 +24,8 @@ template < typename FeatureType,
 /// Internal data required for the hashed_image_classifier class.
 ///
 /// The data members of this class are exposed just in case any external
-/// functions or processes want to train their own models, usually in an online
-/// fashion.
-
+/// functions or processes want to train their own models, usually in an
+/// online fashion.
 template < typename FloatType = double >
 class hashed_image_classifier_model
 {
@@ -55,7 +54,7 @@ public:
   bool is_valid() const;
 
   // Copy operator
-  self_t& operator=( const self_t& other );
+  self_t& operator=( self_t const& other );
 
   // Seed the model with empty values of the given size
   void reset( unsigned feature_count, unsigned entries_per_feature );
@@ -128,38 +127,38 @@ public:
   virtual bool load_from_file( const std::string& file );
 
   /// Classify a feature array, in addition to adding offset to each pixel.
-  virtual void classify_images( const input_image_t& input_features,
-                                weight_image_t& output_image,
-                                const weight_t offset = 0.0 ) const;
+  virtual void classify_image( input_image_t const& input_features,
+                               weight_image_t& output_image,
+                               weight_t const offset = 0.0 ) const;
 
   /// Classify a feature array, in addition to adding offset to each pixel.
-  virtual void classify_images( const feature_vector_t& input_features,
+  virtual void classify_images( feature_vector_t const& input_features,
                                 weight_image_t& output_image,
-                                const weight_t offset = 0.0 ) const;
+                                weight_t const offset = 0.0 ) const;
 
   /// Classify a feature array, in addition to adding offset to each pixel.
-  virtual void classify_images( const input_image_t* input_features,
-                                const unsigned features,
+  virtual void classify_images( input_image_t const* input_features,
+                                unsigned const features,
                                 weight_image_t& output_image,
-                                const weight_t offset = 0.0 ) const;
+                                weight_t const offset = 0.0 ) const;
 
   /// Only classify certain pixels as given by a mask.
-  virtual void classify_images( const feature_vector_t& input_features,
-                                const mask_image_t& mask,
+  virtual void classify_images( feature_vector_t const& input_features,
+                                mask_image_t const& mask,
                                 weight_image_t& output_image,
-                                const weight_t offset = 0.0 ) const;
+                                weight_t const offset = 0.0 ) const;
 
   /// Only classify certain pixels as given by a mask.
-  virtual void classify_images( const input_image_t* input_features,
-                                const unsigned features,
-                                const mask_image_t& mask,
+  virtual void classify_images( input_image_t const* input_features,
+                                unsigned const features,
+                                mask_image_t const& mask,
                                 weight_image_t& output_image,
-                                const weight_t offset = 0.0 ) const;
+                                weight_t const offset = 0.0 ) const;
 
   /// Generate a weight image for some feature.
-  virtual void generate_weight_image( const input_image_t& src,
+  virtual void generate_weight_image( input_image_t const& src,
                                       weight_image_t& dst,
-                                      const unsigned& feature_id ) const;
+                                      unsigned const& feature_id ) const;
 
   /// Returns the number of features the loaded model contains info for.
   virtual unsigned
@@ -173,7 +172,7 @@ public:
   virtual void set_model( model_sptr_t external_model );
 
   /// The stream operator function for writing out models.
-  friend std::ostream& operator<<<>( std::ostream& os, const self_t& obj );
+  friend std::ostream& operator<<<>( std::ostream& os, self_t const& obj );
 
 protected:
   // A pointer to our internal data
