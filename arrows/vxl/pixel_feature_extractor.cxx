@@ -32,17 +32,16 @@ namespace vxl {
 class pixel_feature_extractor::priv
 {
 public:
+
   priv( pixel_feature_extractor* parent ) : p{ parent }
   {
   }
 
   // Copy multiple filtered images into contigious memory
-  template< typename pix_t >
-  vil_image_view< pix_t >
+  template < typename pix_t > vil_image_view< pix_t >
   concatenate_images( std::vector< vil_image_view< pix_t > > filtered_images );
   // Extract local pixel-wise features
-  template < typename response_t >
-  vil_image_view< response_t >
+  template < typename response_t > vil_image_view< response_t >
   filter( kwiver::vital::image_container_sptr input_image );
 
   pixel_feature_extractor* p;
@@ -61,13 +60,14 @@ public:
 };
 
 // ----------------------------------------------------------------------------
-template< typename pix_t >
+template < typename pix_t >
 vil_image_view< pix_t >
 pixel_feature_extractor::priv
 ::concatenate_images( std::vector< vil_image_view< pix_t > > filtered_images )
 {
   // Count the total number of planes
   unsigned total_planes{ 0 };
+
   for( auto const& image : filtered_images )
   {
     total_planes += image.nplanes();
@@ -81,23 +81,24 @@ pixel_feature_extractor::priv
 
   auto const ni = filtered_images.at( 0 ).ni();
   auto const nj = filtered_images.at( 0 ).nj();
-  vil_image_view< pix_t > concatenated_out{ ni, nj, total_planes };
+  vil_image_view< pix_t > concatenated_planes{ ni, nj, total_planes };
 
   // Concatenate the filtered images into a single output
-  unsigned current_plane = 0;
+  unsigned current_plane{ 0 };
 
   for( auto const& image : filtered_images )
   {
     for( unsigned i{ 0 }; i < image.nplanes(); ++i )
     {
-      vil_plane( concatenated_out,
+      vil_plane( concatenated_planes,
                  current_plane ).deep_copy( vil_plane( image, i ) );
       ++current_plane;
     }
   }
-  return concatenated_out;
+  return concatenated_planes;
 }
 
+// ----------------------------------------------------------------------------
 template < typename pix_t >
 vil_image_view< pix_t >
 pixel_feature_extractor::priv
@@ -149,22 +150,21 @@ pixel_feature_extractor
   // get base config from base class
   vital::config_block_sptr config = algorithm::get_configuration();
 
- config->set_value( "enable_aligned_edge",
+  config->set_value( "enable_aligned_edge",
                      d->enable_aligned_edge,
                      "Enable aligned_edge_detection filter." );
- config->set_value( "enable_average",
+  config->set_value( "enable_average",
                      d->enable_average,
                      "Enable average_frames filter." );
- config->set_value( "enable_convert",
+  config->set_value( "enable_convert",
                      d->enable_convert,
                      "Enable convert_image filter." );
- config->set_value( "enable_color_commonality",
+  config->set_value( "enable_color_commonality",
                      d->enable_color_commonality,
                      "Enable color_commonality_filter filter." );
- config->set_value( "enable_high_pass",
+  config->set_value( "enable_high_pass",
                      d->enable_high_pass,
                      "Enable high_pass_filter filter." );
-  // TODO determine whether the sub-blocks should be added
   return config;
 }
 
@@ -182,15 +182,21 @@ pixel_feature_extractor
   d->enable_aligned_edge = config->get_value< bool >( "enable_aligned_edge" );
   d->enable_average = config->get_value< bool >( "enable_average" );
   d->enable_convert = config->get_value< bool >( "enable_convert" );
-  d->enable_color_commonality = config->get_value< bool >( "enable_color_commonality" );
+  d->enable_color_commonality = config->get_value< bool >(
+    "enable_color_commonality" );
   d->enable_high_pass = config->get_value< bool >( "enable_high_pass" );
 
-  // Configure the sub-algorithms
-  d->aligned_edge_detection_filter.set_configuration( config->subblock_view( "aligned_edge" ) );
-  d->average_frames_filter.set_configuration( config->subblock_view( "average" ) );
-  d->convert_image_filter.set_configuration( config->subblock_view( "convert" ) );
-  d->color_commonality_filter.set_configuration( config->subblock_view( "color_commonality" ) );
-  d->high_pass_filter.set_configuration( config->subblock_view( "high_pass" ) );
+  // Configure the individual filter algorithms
+  d->aligned_edge_detection_filter.set_configuration(
+    config->subblock_view( "aligned_edge" ) );
+  d->average_frames_filter.set_configuration(
+     config->subblock_view( "average" ) );
+  d->convert_image_filter.set_configuration(
+    config->subblock_view( "convert" ) );
+  d->color_commonality_filter.set_configuration(
+    config->subblock_view( "color_commonality" ) );
+  d->high_pass_filter.set_configuration(
+    config->subblock_view( "high_pass" ) );
 }
 
 // ----------------------------------------------------------------------------
@@ -198,13 +204,17 @@ bool
 pixel_feature_extractor
 ::check_configuration( vital::config_block_sptr config ) const
 {
-  auto enable_aligned_edge = config->get_value< bool >( "enable_aligned_edge" );
+  auto enable_aligned_edge =
+    config->get_value< bool >( "enable_aligned_edge" );
   auto enable_average = config->get_value< bool >( "enable_average" );
   auto enable_convert = config->get_value< bool >( "enable_convert" );
-  auto enable_color_commonality = config->get_value< bool >( "enable_color_commonality" );
+  auto enable_color_commonality = config->get_value< bool >(
+    "enable_color_commonality" );
   auto enable_high_pass = config->get_value< bool >( "enable_high_pass" );
 
-  if( !( enable_aligned_edge || enable_average || enable_convert || enable_color_commonality || enable_high_pass ) ){
+  if( !( enable_aligned_edge || enable_average || enable_convert ||
+         enable_color_commonality || enable_high_pass ) )
+  {
     LOG_ERROR( logger(), "At least one filter must be enabled" );
     return false;
   }
@@ -223,12 +233,11 @@ pixel_feature_extractor
     return kwiver::vital::image_container_sptr();
   }
 
-  auto concatenated_responses = d->filter< vxl_byte >( image );
+  // Filter and with responses cast to bytes
+  auto const responses = d->filter< vxl_byte >( image );
 
-  vxl::image_container vxl_concatenated_out_container(
-    concatenated_responses );
   return std::make_shared< vxl::image_container >(
-    vxl_concatenated_out_container );
+    vxl::image_container{ responses } );
 }
 
 } // end namespace vxl
