@@ -74,25 +74,25 @@ hashed_image_classifier< FeatureType, OutputType >
   std::vector< std::ptrdiff_t > sisteps( features );
   std::vector< input_t const* > spixels( features );
 
-  for( unsigned f = 0; f < features; f++ )
+  for( unsigned f = 0; f < features; ++f )
   {
     sisteps[ f ] = input_features[ f ].istep();
   }
 
   std::ptrdiff_t const distep = output_image.istep();
 
-  for( unsigned j = 0; j < output_image.nj(); j++ )
+  for( unsigned j = 0; j < output_image.nj(); ++j )
   {
     weight_t* dpixel = &output_image( 0, j );
 
-    for( unsigned f = 0; f < features; f++ )
+    for( unsigned f = 0; f < features; ++f )
     {
       spixels[ f ] = &input_features[ f ]( 0, j );
     }
 
-    for( unsigned i = 0; i < output_image.ni(); i++, dpixel += distep )
+    for( unsigned i = 0; i < output_image.ni(); ++i, dpixel += distep )
     {
-      for( unsigned f = 0; f < features; f++ )
+      for( unsigned f = 0; f < features; ++f )
       {
         *dpixel += feature_weights[ f ][ *spixels[ f ] ];
         spixels[ f ] += sisteps[ f ];
@@ -139,9 +139,9 @@ hashed_image_classifier< FeatureType, OutputType >
 
   weight_t** const feature_weights = &model_->feature_weights[ 0 ];
 
-  for( unsigned j = 0; j < output_image.nj(); j++ )
+  for( unsigned j = 0; j < output_image.nj(); ++j )
   {
-    for( unsigned i = 0; i < output_image.ni(); i++ )
+    for( unsigned i = 0; i < output_image.ni(); ++i )
 
     {
       if( mask( i, j ) )
@@ -150,7 +150,7 @@ hashed_image_classifier< FeatureType, OutputType >
 
         output = offset;
 
-        for( unsigned f = 0; f < features; f++ )
+        for( unsigned f = 0; f < features; ++f )
         {
           output += feature_weights[ f ][ input_features[ f ]( i, j ) ];
         }
@@ -260,12 +260,12 @@ hashed_image_classifier< FeatureType, OutputType >
     }
 
     // Copy parsed weight values
-    for( unsigned i = 1; i < num_values + 1; i++ )
+    for( unsigned i = 1; i < num_values + 1; ++i )
     {
       weights[ entry ][ i -
                         1 ] = boost::lexical_cast< weight_t >( parsed[ i ] );
     }
-    entry++;
+    ++entry;
   }
 
   // Another check to make sure that the reported file correctly contained
@@ -288,7 +288,7 @@ hashed_image_classifier< FeatureType, OutputType >
 
   unsigned int total_weight_bins = 0;
 
-  for( unsigned i = 0; i < weights.size(); i++ )
+  for( unsigned i = 0; i < weights.size(); ++i )
   {
     model_->max_feature_value[ i ] = weights[ i ].size();
     total_weight_bins += model_->max_feature_value[ i ];
@@ -298,11 +298,11 @@ hashed_image_classifier< FeatureType, OutputType >
 
   unsigned int position = 0;
 
-  for( unsigned i = 0; i < weights.size(); i++ )
+  for( unsigned i = 0; i < weights.size(); ++i )
   {
     model_->feature_weights[ i ] = &model_->weights[ 0 ] + position;
 
-    for( unsigned j = 0; j < weights[ i ].size(); j++ )
+    for( unsigned j = 0; j < weights[ i ].size(); ++j )
     {
       model_->weights[ position++ ] = weights[ i ][ j ];
     }
@@ -324,9 +324,9 @@ hashed_image_classifier< FeatureType, OutputType >
 
   weight_t** const feature_weights = &model_->feature_weights[ 0 ];
 
-  for( unsigned j = 0; j < src.nj(); j++ )
+  for( unsigned j = 0; j < src.nj(); ++j )
   {
-    for( unsigned i = 0; i < src.ni(); i++ )
+    for( unsigned i = 0; i < src.ni(); ++i )
     {
       dst( i, j ) = feature_weights[ feature_id ][ src( i, j ) ];
     }
@@ -434,7 +434,7 @@ hashed_image_classifier_model< FloatType >
     weight_t const* const other_start = &( other.weights[ 0 ] );
     weight_t* this_start = &weights[ 0 ];
 
-    for( unsigned i = 0; i < feature_weights.size(); i++ )
+    for( unsigned i = 0; i < feature_weights.size(); ++i )
     {
       std::ptrdiff_t const offset = other.feature_weights[ i ] - other_start;
       feature_weights[ i ] = this_start + offset;
