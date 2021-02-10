@@ -32,16 +32,26 @@ namespace vxl {
 class pixel_feature_extractor::priv
 {
 public:
+  priv( pixel_feature_extractor* parent ) : p{ parent }
+  {
+  }
 
   // Copy multiple filtered images into contigious memory
   template< typename pix_t >
   vil_image_view< pix_t >
   concatenate_images( std::vector< vil_image_view< pix_t > > filtered_images );
+  // Extract local pixel-wise features
+  template < typename response_t >
+  vil_image_view< response_t >
+  filter( kwiver::vital::image_container_sptr input_image );
+
+  pixel_feature_extractor* p;
 
   vxl::aligned_edge_detection aligned_edge_detection_filter;
   vxl::average_frames average_frames_filter;
   vxl::convert_image convert_image_filter;
   vxl::color_commonality_filter color_commonality_filter;
+  // TODO add the edge filter
   vxl::high_pass_filter high_pass_filter;
 };
 
@@ -60,7 +70,7 @@ pixel_feature_extractor::priv
 
   if( total_planes == 0 )
   {
-    //LOG_ERROR( p->logger(), "No filtered images provided"
+    LOG_ERROR( p->logger(), "No filtered images provided" );
     return {};
   }
 
@@ -83,12 +93,47 @@ pixel_feature_extractor::priv
   return concatenated_out;
 }
 
+template < typename pix_t >
+vil_image_view< pix_t >
+pixel_feature_extractor::priv
+::filter( kwiver::vital::image_container_sptr input_image )
+{
+  auto aligned_edge = aligned_edge_detection_filter.filter( input_image );
+  auto averaged = average_frames_filter.filter( input_image );
+  auto converted = convert_image_filter.filter( input_image );
+  auto color_commonality = color_commonality_filter.filter( input_image );
+  auto high_pass = high_pass_filter.filter( input_image );
+
+  std::vector< vil_image_view< vxl_byte > > filtered_images;
+  filtered_images.push_back(
+      vxl::image_container::vital_to_vxl( aligned_edge->get_image() ) );
+  filtered_images.push_back(
+      vxl::image_container::vital_to_vxl( averaged->get_image() ) );
+  filtered_images.push_back(
+      vxl::image_container::vital_to_vxl( converted->get_image() ) );
+  filtered_images.push_back(
+      vxl::image_container::vital_to_vxl( color_commonality->get_image() ) );
+  filtered_images.push_back(
+      vxl::image_container::vital_to_vxl( high_pass->get_image() ) );
+
+  vil_image_view< vxl_byte > concatenated_out =
+    concatenate_images< vxl_byte >( filtered_images );
+
+  return concatenated_out;
+}
+
 // ----------------------------------------------------------------------------
 pixel_feature_extractor
 ::pixel_feature_extractor()
-  : d{ new priv{} }
+  : d{ new priv{ this } }
 {
   attach_logger( "arrows.vxl.pixel_feature_extractor" );
+}
+
+// ----------------------------------------------------------------------------
+pixel_feature_extractor
+::~pixel_feature_extractor()
+{
 }
 
 // ----------------------------------------------------------------------------
@@ -125,37 +170,19 @@ pixel_feature_extractor
 // ----------------------------------------------------------------------------
 kwiver::vital::image_container_sptr
 pixel_feature_extractor
-::filter( kwiver::vital::image_container_sptr image_data )
+::filter( kwiver::vital::image_container_sptr image )
 {
   // Perform Basic Validation
-  if( !image_data )
+  if( !image )
   {
+    LOG_ERROR( logger(), "Invalid image" );
     return kwiver::vital::image_container_sptr();
   }
 
-  auto aligned_edge = d->aligned_edge_detection_filter.filter( image_data );
-  auto averaged = d->average_frames_filter.filter( image_data );
-  auto converted = d->convert_image_filter.filter( image_data );
-  auto color_commonality = d->color_commonality_filter.filter( image_data );
-  auto high_pass = d->high_pass_filter.filter( image_data );
-
-  std::vector< vil_image_view< vxl_byte > > filtered_images;
-  filtered_images.push_back(
-      vxl::image_container::vital_to_vxl( aligned_edge->get_image() ) );
-  filtered_images.push_back(
-      vxl::image_container::vital_to_vxl( averaged->get_image() ) );
-  filtered_images.push_back(
-      vxl::image_container::vital_to_vxl( converted->get_image() ) );
-  filtered_images.push_back(
-      vxl::image_container::vital_to_vxl( color_commonality->get_image() ) );
-  filtered_images.push_back(
-      vxl::image_container::vital_to_vxl( high_pass->get_image() ) );
-
-  vil_image_view< vxl_byte > concatenated_out =
-    d->concatenate_images< vxl_byte >( filtered_images );
+  auto concatenated_responses = d->filter< vxl_byte >( image );
 
   vxl::image_container vxl_concatenated_out_container(
-    concatenated_out );
+    concatenated_responses );
   return std::make_shared< vxl::image_container >(
     vxl_concatenated_out_container );
 }
