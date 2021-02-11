@@ -11,6 +11,7 @@
 #include "high_pass_filter.h"
 
 #include <arrows/vxl/image_container.h>
+#include <vital/config/config_block_io.h>
 
 #include <vil/vil_convert.h>
 #include <vil/vil_image_view.h>
@@ -52,13 +53,15 @@ public:
   bool enable_average{ true };
   bool enable_convert{ true };
   bool enable_color_commonality{ true };
-  bool enable_high_pass{ true };
+  bool enable_high_pass_bidir{ true };
+  bool enable_high_pass_box{ true };
 
   vxl::aligned_edge_detection aligned_edge_detection_filter;
   vxl::average_frames average_frames_filter;
   vxl::convert_image convert_image_filter;
   vxl::color_commonality_filter color_commonality_filter;
-  vxl::high_pass_filter high_pass_filter;
+  vxl::high_pass_filter high_pass_bidir_filter;
+  vxl::high_pass_filter high_pass_box_filter;
 };
 
 // ----------------------------------------------------------------------------
@@ -106,12 +109,6 @@ vil_image_view< pix_t >
 pixel_feature_extractor::priv
 ::filter( kwiver::vital::image_container_sptr input_image )
 {
-  auto aligned_edge = aligned_edge_detection_filter.filter( input_image );
-  auto averaged = average_frames_filter.filter( input_image );
-  auto converted = convert_image_filter.filter( input_image );
-  auto color_commonality = color_commonality_filter.filter( input_image );
-  auto high_pass = high_pass_filter.filter( input_image );
-
   std::vector< vil_image_view< vxl_byte > > filtered_images;
 
   if( enable_color || enable_gray )
@@ -133,23 +130,30 @@ pixel_feature_extractor::priv
   if( enable_color_commonality )
   {
     // 1 channel
+    auto color_commonality = color_commonality_filter.filter( input_image );
     filtered_images.push_back(
         vxl::image_container::vital_to_vxl( color_commonality->get_image() ) );
   }
   // TODO this should also have one which does the other sort of filtering
-  if( enable_high_pass )
+  if( enable_high_pass_box )
   {
+    auto high_pass_box = high_pass_box_filter.filter( input_image );
     // 2 channels
     filtered_images.push_back(
-        vxl::image_container::vital_to_vxl( high_pass->get_image() ) );
+      vxl::image_container::vital_to_vxl( high_pass_box->get_image() ) );
+  }
+  if( enable_high_pass_bidir )
+  {
+    auto high_pass_bidir = high_pass_bidir_filter.filter( input_image );
     // 2 channels
     filtered_images.push_back(
-        vxl::image_container::vital_to_vxl( high_pass->get_image() ) );
+      vxl::image_container::vital_to_vxl( high_pass_bidir->get_image() ) );
   }
   if( enable_convert )
   {
     // 3 channels
     // This should be removed
+    auto converted = convert_image_filter.filter( input_image );
     filtered_images.push_back(
         vxl::image_container::vital_to_vxl( converted->get_image() ) );
   }
@@ -158,10 +162,12 @@ pixel_feature_extractor::priv
   {
     // This should
     // Variance should be 1 channel
+    auto averaged = average_frames_filter.filter( input_image );
     filtered_images.push_back(
         vxl::image_container::vital_to_vxl( averaged->get_image() ) );
   }
   if( enable_aligned_edge ){
+    auto aligned_edge = aligned_edge_detection_filter.filter( input_image );
     // 2 channels
     filtered_images.push_back(
         vxl::image_container::vital_to_vxl( aligned_edge->get_image() ) );
@@ -213,8 +219,11 @@ pixel_feature_extractor
   config->set_value( "enable_color_commonality",
                      d->enable_color_commonality,
                      "Enable color_commonality_filter filter." );
-  config->set_value( "enable_high_pass",
-                     d->enable_high_pass,
+  config->set_value( "enable_high_pass_box",
+                     d->enable_high_pass_box,
+                     "Enable high_pass_filter filter." );
+  config->set_value( "enable_high_pass_bidir",
+                     d->enable_high_pass_bidir,
                      "Enable high_pass_filter filter." );
   return config;
 }
@@ -237,7 +246,10 @@ pixel_feature_extractor
   d->enable_convert = config->get_value< bool >( "enable_convert" );
   d->enable_color_commonality = config->get_value< bool >(
     "enable_color_commonality" );
-  d->enable_high_pass = config->get_value< bool >( "enable_high_pass" );
+  d->enable_high_pass_box =
+    config->get_value< bool >( "enable_high_pass_box" );
+  d->enable_high_pass_bidir =
+    config->get_value< bool >( "enable_high_pass_bidir" );
 
   // Configure the individual filter algorithms
   d->aligned_edge_detection_filter.set_configuration(
@@ -248,8 +260,11 @@ pixel_feature_extractor
     config->subblock_view( "convert" ) );
   d->color_commonality_filter.set_configuration(
     config->subblock_view( "color_commonality" ) );
-  d->high_pass_filter.set_configuration(
-    config->subblock_view( "high_pass" ) );
+  d->high_pass_box_filter.set_configuration(
+    config->subblock_view( "high_pass_box" ) );
+  d->high_pass_bidir_filter.set_configuration(
+    config->subblock_view( "high_pass_bidir" ) );
+  write_config_file( config->subblock_view( "high_pass_box" ), "box.conf" );
 }
 
 // ----------------------------------------------------------------------------
@@ -265,11 +280,14 @@ pixel_feature_extractor
   auto enable_convert = config->get_value< bool >( "enable_convert" );
   auto enable_color_commonality = config->get_value< bool >(
     "enable_color_commonality" );
-  auto enable_high_pass = config->get_value< bool >( "enable_high_pass" );
+  auto enable_high_pass_box =
+    config->get_value< bool >( "enable_high_pass_box" );
+  auto enable_high_pass_bidir =
+    config->get_value< bool >( "enable_high_pass_bidir" );
 
   if( !( enable_color || enable_gray || enable_aligned_edge ||
          enable_average || enable_convert || enable_color_commonality ||
-         enable_high_pass ) )
+         enable_high_pass_box || enable_high_pass_bidir) )
   {
     LOG_ERROR( logger(), "At least one filter must be enabled" );
     return false;

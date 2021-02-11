@@ -10,6 +10,28 @@ process input
 process filter
   ::image_filter
   filter:type                    	= vxl_pixel_feature_extractor
+  filter:vxl_pixel_feature_extractor:enable_color = true
+  filter:vxl_pixel_feature_extractor:enable_gray = true
+  filter:vxl_pixel_feature_extractor:enable_aligned_edge = true
+  filter:vxl_pixel_feature_extractor:enable_average = true
+  filter:vxl_pixel_feature_extractor:enable_convert = true
+  filter:vxl_pixel_feature_extractor:enable_color_commonality = true
+  filter:vxl_pixel_feature_extractor:enable_high_pass_box = true
+  filter:vxl_pixel_feature_extractor:enable_high_pass_bidir = true
+
+  # TODO figure out what size kernel to used because this expects GDS
+  filter:vxl_pixel_feature_extractor:high_pass_box:kernel_width = 13
+  filter:vxl_pixel_feature_extractor:high_pass_box:kernel_height = 13
+  filter:vxl_pixel_feature_extractor:high_pass_box:treat_as_interlaced = false
+  filter:vxl_pixel_feature_extractor:high_pass_box:output_net_only = false
+
+  filter:vxl_pixel_feature_extractor:high_pass_bidir:kernel_width = 27
+  filter:vxl_pixel_feature_extractor:high_pass_bidir:kernel_height = 27
+  filter:vxl_pixel_feature_extractor:high_pass_bidir:treat_as_interlaced = false
+  filter:vxl_pixel_feature_extractor:high_pass_bidir:output_net_only = true
+
+  filter:vxl_pixel_feature_extractor:color_commonality:smooth_image = false
+  filter:vxl_pixel_feature_extractor:color_commonality:output_scale = 255
 
 # ================================================================
 process classifier
