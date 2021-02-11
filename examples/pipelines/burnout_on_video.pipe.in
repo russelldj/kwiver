@@ -10,14 +10,14 @@ process input
 process filter
   ::image_filter
   filter:type                    	= vxl_pixel_feature_extractor
-  filter:vxl_pixel_feature_extractor:enable_color = true
-  filter:vxl_pixel_feature_extractor:enable_gray = true
-  filter:vxl_pixel_feature_extractor:enable_aligned_edge = true
-  filter:vxl_pixel_feature_extractor:enable_average = true
-  filter:vxl_pixel_feature_extractor:enable_convert = true
-  filter:vxl_pixel_feature_extractor:enable_color_commonality = true
-  filter:vxl_pixel_feature_extractor:enable_high_pass_box = true
-  filter:vxl_pixel_feature_extractor:enable_high_pass_bidir = true
+  filter:vxl_pixel_feature_extractor:enable_color = true # 3 channels
+  filter:vxl_pixel_feature_extractor:enable_gray = true # 1 channel
+  filter:vxl_pixel_feature_extractor:enable_color_commonality = true # 1 channel
+  filter:vxl_pixel_feature_extractor:enable_high_pass_box = true # 3 channels
+  filter:vxl_pixel_feature_extractor:enable_high_pass_bidir = true # 1 channel
+  filter:vxl_pixel_feature_extractor:enable_average = true # 3 channels
+  filter:vxl_pixel_feature_extractor:enable_aligned_edge = true # 3 channels
+  filter:vxl_pixel_feature_extractor:enable_convert = false # 3 channels
 
   # TODO figure out what size kernel to used because this expects GDS
   filter:vxl_pixel_feature_extractor:high_pass_box:kernel_width = 13
@@ -37,7 +37,7 @@ process filter
 process classifier
   ::image_filter
   filter:type                    	= vxl_hashed_image_classifier_filter
-  filter:vxl_hashed_image_classifier_filter:default_filename = /home/local/KHQ/david.russell/data/BurnOut_config/models/pixel_classifiers/default_600_13
+  filter:vxl_hashed_image_classifier_filter:default_filename = @EXAMPLE_DIR@/models/default_burnout_600_iters
 
 # ================================================================
 process writer
