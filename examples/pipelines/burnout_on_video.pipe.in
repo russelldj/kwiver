@@ -19,6 +19,10 @@ process filter
   filter:vxl_pixel_feature_extractor:enable_aligned_edge = true # 3 channels
   filter:vxl_pixel_feature_extractor:enable_convert = false # 3 channels
 
+  filter:vxl_pixel_feature_extractor:average:window_size = 25
+  filter:vxl_pixel_feature_extractor:average:type = window
+  filter:vxl_pixel_feature_extractor:average:output_variance = true
+
   # TODO figure out what size kernel to used because this expects GDS
   filter:vxl_pixel_feature_extractor:high_pass_box:kernel_width = 13
   filter:vxl_pixel_feature_extractor:high_pass_box:kernel_height = 13
