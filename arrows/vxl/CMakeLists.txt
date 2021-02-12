@@ -2,6 +2,7 @@
 # structures
 
 set(vxl_headers_public
+  adaptive_threshold.h
   aligned_edge_detection.h
   average_frames.h
   bounding_box.h
@@ -22,6 +23,7 @@ set(vxl_headers_public
   high_pass_filter.h
   image_container.h
   image_io.h
+  image_statistics.h
   match_features_constrained.h
   optimize_cameras.h
   pixel_feature_extractor.h
@@ -43,6 +45,7 @@ kwiver_install_headers(
   )
 
 set(vxl_sources
+  adaptive_threshold.cxx
   aligned_edge_detection.cxx
   average_frames.cxx
   bundle_adjust.cxx
