@@ -6,6 +6,8 @@
 #include <vital/range/iota.h>
 
 #include <vil/vil_plane.h>
+#include <vil/vil_image_view.h>
+#include <vil/algo/vil_threshold.h>
 
 #include <algorithm>
 #include <limits>
@@ -80,7 +82,7 @@ std::vector< PixType >
 get_image_percentiles(
   vil_image_view< PixType > const& src,
   std::vector< double > const& percentiles,
-  unsigned sampling_points, bool remove_extremes )
+  unsigned sampling_points, bool remove_extremes = false )
 {
   std::vector< PixType > sorted_samples =
     sample_and_sort_image( src, sampling_points, remove_extremes );
@@ -107,12 +109,11 @@ template<typename PixType>
 void percentile_threshold_above( vil_image_view< PixType > const& src,
                                  std::vector< double > const& percentiles,
                                  vil_image_view< bool >& dst,
-                                 unsigned sampling_points )
+                                 unsigned sampling_points = 1000 )
 {
   // Calculate thresholds
-  std::vector< PixType > thresholds;
-  get_image_percentiles( src, percentiles, thresholds, sampling_points );
-  dst.set_size( src.ni(), src.nj(), percentiles.size() );
+  auto thresholds = get_image_percentiles( src, percentiles, sampling_points );
+  dst.set_size( src.ni(), src.nj(), static_cast< unsigned >( percentiles.size() ) );
 
   // Perform thresholding
   for( unsigned i = 0; i < thresholds.size(); i++ )
@@ -126,7 +127,7 @@ template<typename PixType>
 void percentile_threshold_above( const vil_image_view< PixType >& src,
                                  const double percentile,
                                  vil_image_view< bool >& dst,
-                                 unsigned sampling_points )
+                                 unsigned sampling_points = 1000 )
 {
   percentile_threshold_above( src,
                               std::vector<double>( 1, percentile ),

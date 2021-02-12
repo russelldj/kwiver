@@ -30,9 +30,9 @@ namespace vxl {
 class adaptive_threshold::priv
 {
 public:
-  priv()
-  {
-  }
+  priv() = default;
+
+  double fraction;
 };
 
 // ----------------------------------------------------------------------------
@@ -57,6 +57,9 @@ adaptive_threshold
   // get base config from base class
   vital::config_block_sptr config = algorithm::get_configuration();
 
+  config->set_value( "fraction", d->fraction,
+                     "Upper fraction of pixels to mark as true." );
+
   return config;
 }
 
@@ -70,13 +73,24 @@ adaptive_threshold
   // performing a get_value() call.
   vital::config_block_sptr config = this->get_configuration();
   config->merge_config( in_config );
+
+  d->fraction = config->get_value< double >( "fraction" );
 }
 
 // ----------------------------------------------------------------------------
 bool
 adaptive_threshold
-::check_configuration( VITAL_UNUSED vital::config_block_sptr config ) const
+::check_configuration( vital::config_block_sptr in_config ) const
 {
+  vital::config_block_sptr config = this->get_configuration();
+  config->merge_config( in_config );
+
+  auto const fraction = config->get_value< double >( "fraction" );
+  if( fraction < 0.0 || fraction > 1.0 )
+  {
+    LOG_ERROR( logger(), "fraction must be in [0, 1] but instead was "
+               << fraction );
+  }
   return true;
 }
 
@@ -87,22 +101,42 @@ adaptive_threshold
 {
   if( !image_data )
   {
-    LOG_ERROR( logger(), "Invalid image data.");
+    LOG_ERROR( logger(), "Invalid image data." );
     return nullptr;
   }
 
   vil_image_view_base_sptr view =
     vxl::image_container::vital_to_vxl( image_data->get_image() );
 
-#define HANDLE_CASE( T )                                                      \
-  case T:                                                                     \
-  {                                                                           \
-    using ipix_t = vil_pixel_format_type_of< T >::component_type;             \
-    vil_image_view< bool > thresholded;                                       \
-    percentile_threshold_above< ipix_t >( view, {0.05}, thresholded,  );      \
-                                                                              \
+#define HANDLE_CASE( T )                                                    \
+  case T:                                                                   \
+  {                                                                         \
+    using ipix_t = vil_pixel_format_type_of< T >::component_type;           \
+    vil_image_view< bool > thresholded;                                     \
+    percentile_threshold_above< ipix_t >( view, d->fraction, thresholded ); \
+    return std::make_shared< vxl::image_container>( thresholded );          \
+  }
 
   return nullptr;
+
+  switch( view->pixel_format() )
+  {
+    HANDLE_CASE( VIL_PIXEL_FORMAT_BYTE );
+    HANDLE_CASE( VIL_PIXEL_FORMAT_SBYTE );
+    HANDLE_CASE( VIL_PIXEL_FORMAT_UINT_16 );
+    HANDLE_CASE( VIL_PIXEL_FORMAT_INT_16 );
+    HANDLE_CASE( VIL_PIXEL_FORMAT_UINT_32 );
+    HANDLE_CASE( VIL_PIXEL_FORMAT_INT_32 );
+    HANDLE_CASE( VIL_PIXEL_FORMAT_UINT_64 );
+    HANDLE_CASE( VIL_PIXEL_FORMAT_INT_64 );
+    HANDLE_CASE( VIL_PIXEL_FORMAT_FLOAT );
+    HANDLE_CASE( VIL_PIXEL_FORMAT_DOUBLE );
+#undef HANDLE_CASE
+
+    default:
+      LOG_ERROR( logger(), "Unsuported pixel type" );
+      return nullptr;
+  }
 }
 
 } // end namespace vxl
