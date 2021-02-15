@@ -104,6 +104,7 @@ adaptive_threshold
     LOG_ERROR( logger(), "Invalid image data." );
     return nullptr;
   }
+  std::cout << "Filtering" << std::endl;
 
   vil_image_view_base_sptr view =
     vxl::image_container::vital_to_vxl( image_data->get_image() );
