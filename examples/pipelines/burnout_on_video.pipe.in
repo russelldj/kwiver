@@ -47,7 +47,8 @@ process classifier
 process thresholder
   ::image_filter
   filter:type                    	= vxl_adaptive_threshold
-  filter:vxl_adaptive_thresholding:fraction = 0.05
+  filter:vxl_adaptive_threshold:type = percentile
+  filter:vxl_adaptive_threshold:threshold = 0.95
 
 # ================================================================
 process writer
