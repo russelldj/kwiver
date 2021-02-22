@@ -26,7 +26,7 @@ set(vxl_headers_public
   optimize_cameras.h
   pixel_feature_extractor.h
   polygon.h
-  scene_obstruction_detector.h
+  scene_obstruction_post_processor.h
   split_image.h
   triangulate_landmarks.h
   vil_image_memory.h
@@ -65,7 +65,7 @@ set(vxl_sources
   optimize_cameras.cxx
   pixel_feature_extractor.cxx
   polygon.cxx
-  scene_obstruction_detector.cxx
+  scene_obstruction_post_processor.cxx
   split_image.cxx
   triangulate_landmarks.cxx
   vil_image_memory.cxx

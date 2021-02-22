@@ -5,6 +5,8 @@
 #ifndef KWIVER_ARROWS_VXL_SCENE_OBSTRUCTION_DETECTOR_H_
 #define KWIVER_ARROWS_VXL_SCENE_OBSTRUCTION_DETECTOR_H_
 
+#include <vital/logger/logger.h>
+
 #include <vgl/vgl_box_2d.h>
 #include <vil/vil_image_view.h>
 #include <vil/vil_rgb.h>
@@ -24,7 +26,11 @@
 
 #include <boost/scoped_ptr.hpp>
 
-namespace vidtk {
+namespace kwiver {
+
+namespace arrows {
+
+namespace vxl {
 
 /// Various learned properties of the scene obstructor for the current frame.
 template < typename PixType >
@@ -184,17 +190,6 @@ public:
   using feature_writer = pixel_feature_writer< FeatureType >;
   using feature_writer_sptr = boost::scoped_ptr< feature_writer >;
 
-  scene_obstruction_detector()
-    : is_valid_( false ),
-      frame_counter_( 0 ),
-      frames_since_last_break_( 0 ),
-      var_hash_scale_( 0.0 ),
-      cumulative_intensity_( 0.0 ),
-      cumulative_mask_count_( 0.0 ),
-      color_hist_bitshift_( 0 ),
-      color_hist_scale_( 0 )
-  {}
-
   scene_obstruction_detector(
     const scene_obstruction_detector_settings& options );
   virtual ~scene_obstruction_detector() {}
@@ -212,7 +207,7 @@ public:
 
 private:
   // Were all models loaded successfully?
-  bool is_valid_;
+  bool is_valid_{ false };
 
   // Externally set options
   scene_obstruction_detector_settings options_;
@@ -223,21 +218,21 @@ private:
   // Internal buffers/counters/classifiers
   hashed_image_classifier< FeatureType > initial_classifier_;
   hashed_image_classifier< FeatureType > appearance_classifier_;
-  unsigned frame_counter_;
-  unsigned frames_since_last_break_;
-  double var_hash_scale_;
+  unsigned frame_counter_{ 0 };
+  unsigned frames_since_last_break_; { 0 }
+  double var_hash_scale_{ 0.0 };
   vil_image_view< PixType > var_hash_;
   vil_image_view< PixType > intensity_diff_;
   vil_image_view< double > summed_history_;
   vil_image_view< FeatureType > spatial_prior_image_;
 
   // Mask break detection variables
-  double cumulative_intensity_;
-  double cumulative_mask_count_;
+  double cumulative_intensity_{ 0.0 };
+  double cumulative_mask_count_{ 0.0 };
   vidtk::ring_buffer< double > mask_count_history_;
   vidtk::ring_buffer< double > mask_intensity_history_;
-  unsigned color_hist_bitshift_;
-  unsigned color_hist_scale_;
+  unsigned color_hist_bitshift_{ 0 };
+  unsigned color_hist_scale_{ 0 };
 
   // Training mode variables
   feature_writer_sptr training_data_extractor_;
@@ -245,6 +240,9 @@ private:
   // Variance buffers
   vil_image_view< double > summed_variance_;
   vil_image_view< PixType > normalized_variance_;
+
+  vital::logger_handle_t logger =
+    kwiver::vital::get_logger( "arrows.vxl.hashed_image_classifier" );
 
   // Generate initial obstruction heatmap
   void perform_initial_approximation( const feature_array& features,

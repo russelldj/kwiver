@@ -26,7 +26,11 @@
 
 #include <logger/logger.h>
 
-namespace vidtk {
+namespace kwiver {
+
+namespace arrows {
+
+namespace vxl {
 
 VIDTK_LOGGER( "scene_obstruction_detector" );
 
@@ -70,7 +74,7 @@ scene_obstruction_detector< PixType, FeatureType >
     if( !initial_classifier_.load_from_file( options.
                                              primary_classifier_filename_ ) )
     {
-      VIDTK_ERROR( "Invalid initial classifier specified" );
+      LOG_ERROR( "Invalid initial classifier specified" );
       return false;
     }
     if( options.use_appearance_classifier_ )
@@ -156,17 +160,26 @@ scene_obstruction_detector< PixType, FeatureType >
                  classified_image& output_image,
                  properties& output_properties )
 {
-  VIDTK_ASSERT( is_valid_, "Internal model is not valid!" );
-  VIDTK_ASSERT( input_features.size() > 0, "No input features provided!" );
-  VIDTK_ASSERT(
-    input_features[ 0 ].ni() == input_image.ni(),
-    "Input widths do not match." );
-  VIDTK_ASSERT(
-    input_features[ 0 ].nj() == input_image.nj(),
-    "Input heights do not match." );
+  if( !is_valid_ )
+  {
+    LOG_ERROR( logger, "Internal model is not valid!" );
+  }
+  if( input_features.size() <= 0 )
+  {
+    LOG_ERROR( logger, "No input features provided!" );
+  }
+  if( input_features[ 0 ].ni() != input_image.ni() )
+  {
+    LOG_ERROR( "Input widths do not match." );
+  }
+  if( input_features[ 0 ].nj() != input_image.nj() )
+  {
+    LOG_ERROR( "Input heights do not match." );
+  }
 
   props_.break_flag_ = false;
 
+  // TODO why is this used
   feature_array full_feature_array = input_features;
 
   // Initialize new buffers on the first frame
@@ -174,6 +187,7 @@ scene_obstruction_detector< PixType, FeatureType >
   {
     this->trigger_mask_break( input_image );
 
+    // TODO look into this
     if( options_.use_spatial_prior_feature_ )
     {
       this->configure_spatial_prior( input_image );
@@ -181,15 +195,16 @@ scene_obstruction_detector< PixType, FeatureType >
   }
 
   // Increment frame counters
-  frame_counter_++;
-  frames_since_last_break_++;
+  ++frame_counter_;
+  ++frames_since_last_break_;
 
+  // TODO address whether this is wrong
   // Update total variance image (since last shot break)
   vil_math_image_sum( pixel_variance, summed_variance_, summed_variance_ );
 
-  double scale_factor = options_.variance_scale_factor_ /
+  const double scale_factor = options_.variance_scale_factor_ /
                         frames_since_last_break_;
-  double max_input_value = std::numeric_limits< FeatureType >::max() /
+  const double max_input_value = std::numeric_limits< FeatureType >::max() /
                            scale_factor;
   scale_float_img_to_interval( summed_variance_, normalized_variance_,
                                scale_factor, max_input_value );
@@ -217,6 +232,7 @@ scene_obstruction_detector< PixType, FeatureType >
   // If in training mode, extract feature data
   if( options_.is_training_mode_ )
   {
+    // TODO What is getting written here?
     this->training_data_extractor_->step( full_feature_array );
     return;
   }
@@ -342,6 +358,8 @@ scene_obstruction_detector< PixType, FeatureType >
                                  const image_border& border,
                                  classified_image& output_image )
 {
+  // TODO Figure out what this is doing and whether we should enforce that
+  // output image is only one channel
   // Formulate classifier input (vector of single plane byte images)
   vil_image_view< double > approx_output = vil_plane( output_image, 1 );
 
@@ -358,6 +376,7 @@ scene_obstruction_detector< PixType, FeatureType >
   // Create new input array to feed to classifiers
   feature_array input_array;
 
+  // TODO assess why this concept of borders is so prevalent
   // Scale views for image border if present
   if( border.volume() > 0 )
   {
@@ -372,9 +391,11 @@ scene_obstruction_detector< PixType, FeatureType >
     input_array = features;
   }
 
+  // TODO understand this
   // Perform classification
   double offset = adaptive_threshold_contribution( frames_since_last_break_ );
 
+  // Figure out whether we want support for appearance based classification as well
   if( !options_.use_appearance_classifier_ ||
       frames_since_last_break_ > options_.appearance_frames_ )
   {
@@ -387,6 +408,7 @@ scene_obstruction_detector< PixType, FeatureType >
   }
 
   // Add classification to history and copy history to output
+  // TODO This is the same as approx_output, right?
   vil_image_view< double > initial = vil_plane( output_image, 1 );
   vil_image_view< double > statics = vil_plane( output_image, 0 );
   vil_math_image_sum( initial, summed_history_, summed_history_ );
@@ -856,4 +878,8 @@ scene_obstruction_detector< PixType, FeatureType >
   print_scaled_classifier_image( avg_fn, temp, abs_max );
 }
 
-} // end namespace vidtk
+} // namespace kwiver
+
+} // namespace arrows
+
+} // namespace kwiver
