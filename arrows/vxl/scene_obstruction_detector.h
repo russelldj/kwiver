@@ -219,7 +219,7 @@ private:
   hashed_image_classifier< FeatureType > initial_classifier_;
   hashed_image_classifier< FeatureType > appearance_classifier_;
   unsigned frame_counter_{ 0 };
-  unsigned frames_since_last_break_; { 0 }
+  unsigned frames_since_last_break_ { 0 };
   double var_hash_scale_{ 0.0 };
   vil_image_view< PixType > var_hash_;
   vil_image_view< PixType > intensity_diff_;

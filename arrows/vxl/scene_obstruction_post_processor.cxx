@@ -13,6 +13,8 @@
 #include <vil/vil_math.h>
 #include <vil/vil_pixel_format.h>
 
+#include <deque>
+
 namespace kwiver {
 
 namespace arrows {
@@ -164,7 +166,9 @@ class scene_obstruction_post_processor::priv
 public:
   priv( scene_obstruction_post_processor* parent ) : p{ parent } {}
 
-  // ----------------------------------------------------------------------------
+  // Called when a change in obstructions is likely
+  void trigger_mask_break( const source_image& input );
+  // TODO add documentation
   template < typename PixType, typename FeatureType >
   void
   process_frame( const source_image& input_image,
@@ -184,33 +188,44 @@ public:
   properties props_;
 
   // Internal buffers/counters/classifiers
-  hashed_image_classifier< FeatureType > initial_classifier_;
-  hashed_image_classifier< FeatureType > appearance_classifier_;
   unsigned frame_counter_{ 0 };
-  unsigned frames_since_last_break_; { 0 }
+  unsigned frames_since_last_break_ { 0 };
   double var_hash_scale_{ 0.0 };
-  vil_image_view< PixType > var_hash_;
-  vil_image_view< PixType > intensity_diff_;
+  vil_image_view< vxl_byte > var_hash_;
+  vil_image_view< vxl_byte > intensity_diff_;
   vil_image_view< double > summed_history_;
-  vil_image_view< FeatureType > spatial_prior_image_;
+  vil_image_view< vxl_byte > spatial_prior_image_;
 
   // Mask break detection variables
   double cumulative_intensity_{ 0.0 };
   double cumulative_mask_count_{ 0.0 };
-  vidtk::ring_buffer< double > mask_count_history_;
-  vidtk::ring_buffer< double > mask_intensity_history_;
+  std::deque< double > mask_count_history_;
+  std::deque< double > mask_intensity_history_;
   unsigned color_hist_bitshift_{ 0 };
   unsigned color_hist_scale_{ 0 };
 
-  // Training mode variables
-  feature_writer_sptr training_data_extractor_;
-
   // Variance buffers
   vil_image_view< double > summed_variance_;
-  vil_image_view< PixType > normalized_variance_;
+  vil_image_view< double > normalized_variance_;
 
 };
 
+// ----------------------------------------------------------------------------
+void
+scene_obstruction_post_processor::priv
+::trigger_mask_break( const source_image& input )
+{
+  summed_history_.set_size( input.ni(), input.nj(), 1 );
+  summed_history_.fill( 0 );
+  summed_variance_.set_size( input.ni(), input.nj(), 1 );
+  summed_variance_.fill( 0 );
+
+  cumulative_intensity_ = 0;
+  cumulative_mask_count_ = 0;
+  frames_since_last_break_ = 0;
+
+  props_.break_flag_ = true;
+}
 
 // ----------------------------------------------------------------------------
 template < typename PixType, typename FeatureType >
@@ -218,9 +233,9 @@ void
 scene_obstruction_post_processor::priv
 ::process_frame( const source_image& input_image,
                  const feature_array& input_features,
-                 const variance_image& pixel_variance,
+                 const variance_image& pixel_variance, // figure out how to grab this
                  classified_image& output_image,
-                 properties& output_properties )
+                 properties& output_properties ) // probably nix that
 {
   if( !is_valid_ )
   {
@@ -242,6 +257,7 @@ scene_obstruction_post_processor::priv
   props_.break_flag_ = false;
 
   // TODO why is this used
+  // Figure out how asignment with references works
   feature_array full_feature_array = input_features;
 
   // Initialize new buffers on the first frame
@@ -337,8 +353,6 @@ scene_obstruction_post_processor::priv
   // Set output properties
   output_properties = props_;
 }
-
-
 
 // ----------------------------------------------------------------------------
 scene_obstruction_post_processor
