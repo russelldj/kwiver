@@ -5,9 +5,9 @@
 #ifndef KWIVER_ARROWS_VXL_SCENE_OBSTRUCTION_DETECTOR_H_
 #define KWIVER_ARROWS_VXL_SCENE_OBSTRUCTION_DETECTOR_H_
 
+#include <vgl/vgl_box_2d.h>
 #include <vil/vil_image_view.h>
 #include <vil/vil_rgb.h>
-#include <vgl/vgl_box_2d.h>
 
 #include <object_detectors/pixel_feature_writer.h>
 
@@ -16,24 +16,22 @@
 #include <utilities/ring_buffer.h>
 #include <utilities/timestamp.h>
 
-#include <vector>
 #include <limits>
 #include <string>
+#include <vector>
 
 #include <classifier/hashed_image_classifier.h>
 
 #include <boost/scoped_ptr.hpp>
 
-namespace vidtk
-{
-
+namespace vidtk {
 
 /// Various learned properties of the scene obstructor for the current frame.
-template< typename PixType >
+template < typename PixType >
 struct scene_obstruction_properties
 {
   // Average color of the obstruction
-  vil_rgb<PixType> color_{ 0, 0, 0 };
+  vil_rgb< PixType > color_{ 0, 0, 0 };
 
   // Average intensity of the obstructor
   PixType intensity_{ 0 };
@@ -44,7 +42,6 @@ struct scene_obstruction_properties
   // Is the information in this structure valid?
   bool is_valid_{ true };
 };
-
 
 /// External settings for the scene_obstructor_detector class.
 struct scene_obstruction_detector_settings
@@ -123,39 +120,38 @@ struct scene_obstruction_detector_settings
 
   // Defaults
   scene_obstruction_detector_settings()
-  : primary_classifier_filename_( "" ),
-    appearance_classifier_filename_( "" ),
-    initial_threshold_( 0.0 ),
-    use_appearance_classifier_( true ),
-    appearance_frames_( 10 ),
-    variance_scale_factor_( 0.32 ),
-    use_spatial_prior_feature_( true ),
-    spatial_prior_filename_( "" ),
-    spatial_prior_grid_length_( 5 ),
-    map_colors_to_nearest_extreme_( true ),
-    map_colors_near_extremes_only_( false ),
-    no_gray_filter_( true ),
-    use_adaptive_thresh_( false ),
-    at_pivot_1_( 10 ),
-    at_pivot_2_( 10 ),
-    at_interval_1_adj_( 0.0 ),
-    at_interval_2_adj_( 0.0 ),
-    at_interval_3_adj_( 0.0 ),
-    enable_mask_break_detection_( true ),
-    mask_count_history_length_( 20 ),
-    mask_intensity_history_length_( 40 ),
-    count_percent_change_req_( 3.0 ),
-    count_std_dev_req_( 5 ),
-    min_hist_for_intensity_diff_( 30 ),
-    intensity_diff_req_( 90 ),
-    is_training_mode_( false ),
-    output_feature_image_mode_( false ),
-    output_classifier_image_mode_( false ),
-    groundtruth_dir_( "" ),
-    output_filename_( "" )
+    : primary_classifier_filename_( "" ),
+      appearance_classifier_filename_( "" ),
+      initial_threshold_( 0.0 ),
+      use_appearance_classifier_( true ),
+      appearance_frames_( 10 ),
+      variance_scale_factor_( 0.32 ),
+      use_spatial_prior_feature_( true ),
+      spatial_prior_filename_( "" ),
+      spatial_prior_grid_length_( 5 ),
+      map_colors_to_nearest_extreme_( true ),
+      map_colors_near_extremes_only_( false ),
+      no_gray_filter_( true ),
+      use_adaptive_thresh_( false ),
+      at_pivot_1_( 10 ),
+      at_pivot_2_( 10 ),
+      at_interval_1_adj_( 0.0 ),
+      at_interval_2_adj_( 0.0 ),
+      at_interval_3_adj_( 0.0 ),
+      enable_mask_break_detection_( true ),
+      mask_count_history_length_( 20 ),
+      mask_intensity_history_length_( 40 ),
+      count_percent_change_req_( 3.0 ),
+      count_std_dev_req_( 5 ),
+      min_hist_for_intensity_diff_( 30 ),
+      intensity_diff_req_( 90 ),
+      is_training_mode_( false ),
+      output_feature_image_mode_( false ),
+      output_classifier_image_mode_( false ),
+      groundtruth_dir_( "" ),
+      output_filename_( "" )
   {}
 };
-
 
 /// The scene_obstruction_detector takes in a series of input features,
 /// as produced by the pixel_feature_extractor_super_process, in addition
@@ -163,7 +159,8 @@ struct scene_obstruction_detector_settings
 /// classifier to come up with an initial estimate of locations of potential
 /// scene obstructions. This initial approximation is then averaged between
 /// successive frames. If a signifant change in the initial approximation is
-/// detected, a "mask shot break" is triggered which resets the internal average.
+/// detected, a "mask shot break" is triggered which resets the internal
+/// average.
 ///
 /// As output, it produces an output image containing 2 planes, 1 detailing
 /// the classification values for the running average, and one for the intial
@@ -173,12 +170,10 @@ struct scene_obstruction_detector_settings
 /// The process also has several optional sub-systems including adaptive
 /// weighting, performing a 2 level classifier, and outputting training
 /// data for the creation of different classifiers.
-template <typename PixType, typename FeatureType>
+template < typename PixType, typename FeatureType >
 class scene_obstruction_detector
 {
-
 public:
-
   using source_image = vil_image_view< PixType >;
   using feature_image = vil_image_view< FeatureType >;
   using feature_array = std::vector< feature_image >;
@@ -190,17 +185,18 @@ public:
   using feature_writer_sptr = boost::scoped_ptr< feature_writer >;
 
   scene_obstruction_detector()
-    : is_valid_(false),
-      frame_counter_(0),
-      frames_since_last_break_(0),
-      var_hash_scale_(0.0),
-      cumulative_intensity_(0.0),
-      cumulative_mask_count_(0.0),
-      color_hist_bitshift_(0),
-      color_hist_scale_(0)
+    : is_valid_( false ),
+      frame_counter_( 0 ),
+      frames_since_last_break_( 0 ),
+      var_hash_scale_( 0.0 ),
+      cumulative_intensity_( 0.0 ),
+      cumulative_mask_count_( 0.0 ),
+      color_hist_bitshift_( 0 ),
+      color_hist_scale_( 0 )
   {}
 
-  scene_obstruction_detector( const scene_obstruction_detector_settings& options );
+  scene_obstruction_detector(
+    const scene_obstruction_detector_settings& options );
   virtual ~scene_obstruction_detector() {}
 
   /// Re-configure the detector with new settings.
@@ -215,7 +211,6 @@ public:
                       properties& output_properties );
 
 private:
-
   // Were all models loaded successfully?
   bool is_valid_;
 
@@ -279,8 +274,6 @@ private:
   void configure_spatial_prior( const source_image& input );
 };
 
-
 } // end namespace vidtk
-
 
 #endif
