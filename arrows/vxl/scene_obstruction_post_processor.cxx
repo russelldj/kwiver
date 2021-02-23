@@ -166,16 +166,26 @@ class scene_obstruction_post_processor::priv
 public:
   priv( scene_obstruction_post_processor* parent ) : p{ parent } {}
 
+  // Use different thresholds based on elapsed frames
+  double
+  adaptive_threshold_contribution( const unsigned& frame_num );
+  // TODO Document
+  //template < typename PixType, typename FeatureType >
+  void
+  perform_initial_approximation( const feature_array& features,
+                                 classified_image& output_image );
   // Called when a change in obstructions is likely
   void trigger_mask_break( const source_image& input );
+  // TODO document
+  bool
+  estimate_mask_properties( const source_image& input,
+                            const classified_image& output );
   // TODO add documentation
-  template < typename PixType, typename FeatureType >
-  void
+  template < typename PixType, typename FeatureType > void
   process_frame( const source_image& input_image,
                  const feature_array& input_features,
                  const variance_image& pixel_variance,
-                 classified_image& output_image,
-                 properties& output_properties );
+                 classified_image& output_image );
 
   scene_obstruction_post_processor* p;
 
@@ -211,6 +221,70 @@ public:
 };
 
 // ----------------------------------------------------------------------------
+double
+scene_obstruction_post_processor::priv
+::adaptive_threshold_contribution( const unsigned& frame_num )
+{
+  if( !options_.use_adaptive_thresh_ )
+  {
+    return 0.0;
+  }
+  if( frame_num > options_.at_pivot_2_ )
+  {
+    return options_.at_interval_3_adj_;
+  }
+  else if( frame_num > options_.at_pivot_1_ )
+  {
+    return options_.at_interval_2_adj_;
+  }
+  return options_.at_interval_1_adj_;
+}
+
+// ----------------------------------------------------------------------------
+//template < typename PixType, typename FeatureType >
+void
+scene_obstruction_post_processor::priv
+::perform_initial_approximation( const feature_array& features,
+                                 classified_image& output_image )
+{
+  // TODO Figure out what this is doing and whether we should enforce that
+  // output image is only one channel
+  // Formulate classifier input (vector of single plane byte images)
+  vil_image_view< double > approx_output = vil_plane( output_image, 1 );
+
+  // A small (negatively classified) value used for initially filling
+  // the output classification. For the most part is not used, except
+  // for pixels which don't get processed (ie those outside of the identified
+  // border).
+  const double negative_fill_value = options_.initial_threshold_ -
+                                     std::numeric_limits< double >::epsilon();
+
+  // Seed the output approximate
+  approx_output.fill( negative_fill_value );
+
+  // TODO understand this
+  // Perform classification
+  double offset = adaptive_threshold_contribution( frames_since_last_break_ );
+
+  // Figure out whether we want support for appearance based classification as well
+  if( !options_.use_appearance_classifier_ ||
+      frames_since_last_break_ > options_.appearance_frames_ )
+  {
+    initial_classifier_.classify_images( features, approx_output, offset );
+  }
+  else
+  {
+    appearance_classifier_.classify_images( features, approx_output, offset );
+  }
+
+  // Add classification to history and copy history to output
+  // TODO This is the same as approx_output, right?
+  vil_image_view< double > statics = vil_plane( output_image, 0 );
+  vil_math_image_sum( approx_output, summed_history_, summed_history_ );
+  statics.deep_copy( summed_history_ );
+}
+
+// ----------------------------------------------------------------------------
 void
 scene_obstruction_post_processor::priv
 ::trigger_mask_break( const source_image& input )
@@ -228,31 +302,368 @@ scene_obstruction_post_processor::priv
 }
 
 // ----------------------------------------------------------------------------
+// TODO: This should be removed and replaced with some sort of VIL function
+// Convert a floating point image to an intergral type by multiplying
+// it by a scaling factor in addition to thresholding it in one operation.
+// Performs rounding.
+template< typename FloatType, typename IntType >
+void scale_float_img_to_interval( const vil_image_view<FloatType>& src,
+                                  vil_image_view<IntType>& dst,
+                                  const FloatType& scale,
+                                  const FloatType& max_input_value )
+{
+  // Resize, cast and copy
+  unsigned ni = src.ni(), nj = src.nj(), np = src.nplanes();
+  dst.set_size( ni, nj, np );
+
+  std::ptrdiff_t sistep=src.istep(), sjstep=src.jstep(), spstep=src.planestep();
+  std::ptrdiff_t distep=dst.istep(), djstep=dst.jstep(), dpstep=dst.planestep();
+
+  IntType max_hashed_value = static_cast<IntType>( max_input_value * scale + 0.5 );
+
+  const FloatType* splane = src.top_left_ptr();
+  IntType* dplane = dst.top_left_ptr();
+  for (unsigned p=0;p<np;++p,splane += spstep,dplane += dpstep)
+  {
+    const FloatType* srow = splane;
+    IntType* drow = dplane;
+    for (unsigned j=0;j<nj;++j,srow += sjstep,drow += djstep)
+    {
+      const FloatType* spixel = srow;
+      IntType* dpixel = drow;
+      for (unsigned i=0;i<ni;++i,spixel+=sistep,dpixel+=distep)
+      {
+        if( *spixel <= max_input_value )
+        {
+          *dpixel = static_cast<IntType>(*spixel * scale + 0.5);
+        }
+        else
+        {
+          *dpixel = max_hashed_value;
+        }
+      }
+    }
+  }
+}
+
+// ----------------------------------------------------------------------------
+// This returns whether a break was detected
+bool
+scene_obstruction_post_processor::priv
+::estimate_mask_properties( const source_image& input,
+                            const classified_image& output )
+{
+  return false;
+//#ifdef SOD_DEBUG_IMAGE
+//  source_image to_output;
+//  to_output.deep_copy( input );
+//#endif
+//
+//  if( input.nplanes() == 3 || input.nplanes() == 1 ){
+//    LOG_ERROR( p->logger(), "Invalid plane count" );
+//  }
+//
+//  // Estimate colour and intensity (take a quick cross-channel mode).
+//  // Concurrently count # of pixels in the detected mask approximation.
+//  const bool is_color_image = ( input.nplanes() == 3 );
+//
+//  unsigned hist[ 3 ][ hist_bins ] = { { 0 } };
+//
+//  const std::ptrdiff_t oistep = output.istep();
+//  const std::ptrdiff_t ojstep = output.jstep();
+//
+//  const std::ptrdiff_t ipstep = input.planestep();
+//  const std::ptrdiff_t ip2step = 2 * ipstep;
+//
+//  const double threshold = options_.initial_threshold_;
+//
+//  // Automatically discount any pixels directly near the estimated border
+//  // because they might be warped towards the border color due to compression
+//  // artifacts.
+//  const unsigned borderadj = 20;
+//
+//  unsigned init_clfr_counter = 0;
+//
+//  for( unsigned j = lower_j + borderadj; j < upper_j - borderadj; j++ )
+//  {
+//    const double* init_clfr_ptr = &output( lower_i + borderadj, j, 1 );
+//
+//    for( unsigned i = lower_i + borderadj; i < upper_i - borderadj;
+//         i++, init_clfr_ptr += oistep )
+//    {
+//      if( *init_clfr_ptr > threshold )
+//      {
+//        init_clfr_counter++;
+//
+//        if( output( i, j, 0 ) > threshold &&
+//            calculate_border_degree( init_clfr_ptr, oistep, ojstep, threshold,
+//                                     4 ) > 3 &&
+//            calculate_long_degree( init_clfr_ptr, oistep, ojstep, threshold, 6,
+//                                   3 ) > 2 )
+//        {
+//          const PixType* color = &input( i, j );
+//          hist[ 0 ][ *( color ) >> color_hist_bitshift_ ]++;
+//
+//#ifdef SOD_DEBUG_IMAGE
+//          to_output( i, j, 0 ) = 255;
+//          to_output( i, j, 2 ) = 255;
+//#endif
+//
+//          if( is_color_image )
+//          {
+//            hist[ 1 ][ *( color + ipstep ) >> color_hist_bitshift_ ]++;
+//            hist[ 2 ][ *( color + ip2step ) >> color_hist_bitshift_ ]++;
+//          }
+//        }
+//      }
+//    }
+//  }
+//
+//#ifdef SOD_DEBUG_IMAGE
+//  static int counter = 0;
+//  counter++;
+//  std::string fn = "frame" + std::to_string( counter ) + ".png";
+//  vil_save( to_output, fn.c_str() );
+//#endif
+//
+//  // Calculate mode and cumulative histograms
+//  const unsigned div = hist_bins / 3;
+//
+//  unsigned top_ind[ 3 ] = { 0 };
+//  unsigned max_val[ 3 ] = { 0 };
+//
+//  unsigned cum_hist[ 3 ][ hist_bins ] = { { 0 } };
+//  unsigned lmh_sum[ 3 ][ 3 ] = { { 0 } };
+//
+//  for( unsigned c = 0; c < 3; ++c )
+//  {
+//    for( unsigned i = 0; i < hist_bins; ++i )
+//    {
+//      if( hist[ c ][ i ] > max_val[ c ] )
+//      {
+//        max_val[ c ] = hist[ c ][ i ];
+//        top_ind[ c ] = i;
+//      }
+//
+//      if( i != 0 )
+//      {
+//        cum_hist[ c ][ i ] = cum_hist[ c ][ i - 1 ] + hist[ c ][ i ];
+//      }
+//    }
+//
+//    lmh_sum[ c ][ 0 ] = cum_hist[ c ][ div - 1 ];
+//    lmh_sum[ c ][ 1 ] = cum_hist[ c ][ hist_bins - 1 - div ] -
+//                        cum_hist[ c ][ div - 1 ];
+//    lmh_sum[ c ][ 2 ] = cum_hist[ c ][ hist_bins - 1 ] -
+//                        cum_hist[ c ][ hist_bins - 1 - div ];
+//  }
+//
+//  // Set color in property options, apply any settings
+//  props_.color_.r = top_ind[ 0 ] * color_hist_scale_ + color_hist_scale_ / 2;
+//
+//  if( is_color_image )
+//  {
+//    props_.color_.g = top_ind[ 1 ] * color_hist_scale_ + color_hist_scale_ / 2;
+//    props_.color_.b = top_ind[ 2 ] * color_hist_scale_ + color_hist_scale_ / 2;
+//  }
+//  else
+//  {
+//    props_.color_.g = props_.color_.r;
+//    props_.color_.b = props_.color_.r;
+//  }
+//
+//  const unsigned invalid_color = 5;
+//  unsigned color_index = invalid_color;
+//  unsigned color_weights[ invalid_color ] = { 0 };
+//
+//  color_weights[ 0 ] = lmh_sum[ 0 ][ 0 ] + lmh_sum[ 1 ][ 0 ] +
+//                       lmh_sum[ 2 ][ 0 ];
+//  color_weights[ 1 ] = lmh_sum[ 0 ][ 2 ] + lmh_sum[ 1 ][ 2 ] +
+//                       lmh_sum[ 2 ][ 2 ];
+//  color_weights[ 2 ] = lmh_sum[ 0 ][ 1 ] + lmh_sum[ 1 ][ 1 ] +
+//                       lmh_sum[ 2 ][ 1 ];
+//
+//  if( is_color_image )
+//  {
+//    color_weights[ 3 ] = lmh_sum[ 0 ][ 0 ] + lmh_sum[ 1 ][ 2 ] +
+//                         lmh_sum[ 2 ][ 0 ];
+//    color_weights[ 4 ] = lmh_sum[ 0 ][ 0 ] + lmh_sum[ 1 ][ 0 ] +
+//                         lmh_sum[ 2 ][ 2 ];
+//  }
+//
+//  if( options_.no_gray_filter_ )
+//  {
+//    color_weights[ 2 ] = 0;
+//  }
+//
+//  if( options_.map_colors_to_nearest_extreme_ )
+//  {
+//    color_index = std::distance( color_weights,
+//                                 std::max_element( color_weights,
+//                                                   color_weights + 4 ) );
+//  }
+//  else if( options_.map_colors_near_extremes_only_ )
+//  {
+//    color_index = std::distance( color_weights,
+//                                 std::max_element( color_weights,
+//                                                   color_weights + 4 ) );
+//
+//    unsigned max_option = 0;
+//
+//    for( unsigned i = 0; i < 3; ++i )
+//    {
+//      for( unsigned j = 0; j < 3; ++j )
+//      {
+//        for( unsigned k = 0; k < 3; ++k )
+//        {
+//          unsigned color_count = lmh_sum[ 0 ][ i ] + lmh_sum[ 1 ][ j ] +
+//                                 lmh_sum[ 2 ][ k ];
+//          max_option = std::max( max_option, color_count );
+//        }
+//      }
+//    }
+//
+//    if( color_weights[ color_index ] < max_option )
+//    {
+//      color_index = invalid_color;
+//    }
+//  }
+//
+//  switch( color_index )
+//  {
+//    case 0:
+//      props_.color_.r = 0;
+//      props_.color_.g = 0;
+//      props_.color_.b = 0;
+//      break;
+//    case 1:
+//      props_.color_.r = std::numeric_limits< FeatureType >::max();
+//      props_.color_.g = std::numeric_limits< FeatureType >::max();
+//      props_.color_.b = std::numeric_limits< FeatureType >::max();
+//      break;
+//    case 2:
+//      props_.color_.r = std::numeric_limits< FeatureType >::max() / 2;
+//      props_.color_.g = std::numeric_limits< FeatureType >::max() / 2;
+//      props_.color_.b = std::numeric_limits< FeatureType >::max() / 2;
+//      break;
+//    case 3:
+//      props_.color_.r = 0;
+//      props_.color_.g = std::numeric_limits< FeatureType >::max();
+//      props_.color_.b = 0;
+//      break;
+//    case 4:
+//      props_.color_.r = 0;
+//      props_.color_.g = 0;
+//      props_.color_.b = std::numeric_limits< FeatureType >::max();
+//      break;
+//    default:
+//      break;
+//  }
+//
+//  props_.intensity_ = props_.color_.grey();
+//
+//  // Now that we have our recorded properties, enter them into our
+//  // history and determine if there may have been a break.
+//  //
+//  // Feature1 = % difference between the pixel count and the pcount average
+//  // Feature2 = # of std devs away from pixel count average
+//  // Feature3 = Difference of raw color output and color average
+//  double avg = 0.0, dev = 0.0;
+//  double pix_count = static_cast< double >( init_clfr_counter );
+//
+//  if( mask_count_history_.size() == 0 )
+//  {
+//    mask_count_history_.insert( pix_count );
+//    mask_intensity_history_.insert( props_.intensity_ );
+//    return false;
+//  }
+//
+//  for( unsigned i = 0; i < mask_count_history_.size(); i++ )
+//  {
+//    avg += mask_count_history_.datum_at( i );
+//  }
+//
+//  avg /= mask_count_history_.size();
+//
+//  for( unsigned i = 0; i < mask_count_history_.size(); i++ )
+//  {
+//    double term = mask_count_history_.datum_at( i ) - avg;
+//    dev += term * term;
+//  }
+//
+//  dev = std::sqrt( dev );
+//
+//  double feature1 = 0.0, feature2 = 0.0;
+//
+//  if( avg > pix_count )
+//  {
+//    feature1 = avg / ( pix_count + 1 );
+//  }
+//  else
+//  {
+//    feature1 = pix_count / ( avg + 1 );
+//  }
+//
+//  if( dev != 0 )
+//  {
+//    feature2 = std::fabs( ( pix_count - avg ) / dev );
+//  }
+//
+//  double color_avg = 0.0;
+//
+//  for( unsigned i = 0; i < mask_intensity_history_.size(); i++ )
+//  {
+//    color_avg += mask_intensity_history_.datum_at( i );
+//  }
+//
+//  color_avg /= mask_intensity_history_.size();
+//
+//  // Threshold all features via the given parameters
+//  if( feature1 > options_.count_percent_change_req_ ||
+//      feature2 > options_.count_std_dev_req_ ||
+//      ( mask_intensity_history_.size() >
+//        options_.min_hist_for_intensity_diff_ &&
+//        std::abs( static_cast< double >( props_.intensity_ ) - color_avg ) >
+//        options_.intensity_diff_req_ ) )
+//  {
+//    mask_count_history_.clear();
+//    mask_intensity_history_.clear();
+//    mask_count_history_.insert( pix_count );
+//    mask_intensity_history_.insert( props_.intensity_ );
+//    LOG_INFOR( p->logger(),  "HUD change detected on frame: " << frame_counter_ );
+//    return true;
+//  }
+//
+//  mask_count_history_.insert( pix_count );
+//  mask_intensity_history_.insert( props_.intensity_ );
+//  return false;
+}
+
+// ----------------------------------------------------------------------------
 template < typename PixType, typename FeatureType >
 void
 scene_obstruction_post_processor::priv
-::process_frame( const source_image& input_image,
-                 const feature_array& input_features,
+::process_frame( const source_image& input_image, // Also maybe unneeded
+                 const feature_array& input_features, // probably unneeded
                  const variance_image& pixel_variance, // figure out how to grab this
-                 classified_image& output_image,
-                 properties& output_properties ) // probably nix that
+                 classified_image& output_image ) // probably nix that
 {
-  if( !is_valid_ )
-  {
-    LOG_ERROR( p->logger(), "Internal model is not valid!" );
-  }
-  if( input_features.size() <= 0 )
-  {
-    LOG_ERROR( p->logger(), "No input features provided!" );
-  }
-  if( input_features[ 0 ].ni() != input_image.ni() )
-  {
-    LOG_ERROR( p->logger(), "Input widths do not match." );
-  }
-  if( input_features[ 0 ].nj() != input_image.nj() )
-  {
-    LOG_ERROR( p->logger(), "Input heights do not match." );
-  }
+  //if( !is_valid_ )
+  //{
+  //  LOG_ERROR( p->logger(), "Internal model is not valid!" );
+  //}
+  //if( input_features.size() <= 0 )
+  //{
+  //  LOG_ERROR( p->logger(), "No input features provided!" );
+  //}
+  //if( input_features[ 0 ].ni() != input_image.ni() )
+  //{
+  //  LOG_ERROR( p->logger(), "Input widths do not match." );
+  //}
+  //if( input_features[ 0 ].nj() != input_image.nj() )
+  //{
+  //  LOG_ERROR( p->logger(), "Input heights do not match." );
+  //}
 
   props_.break_flag_ = false;
 
@@ -264,26 +675,22 @@ scene_obstruction_post_processor::priv
   if( frame_counter_ == 0 )
   {
     this->trigger_mask_break( input_image );
-
-    // TODO look into this
-    if( options_.use_spatial_prior_feature_ )
-    {
-      this->configure_spatial_prior( input_image );
-    }
   }
 
   // Increment frame counters
   ++frame_counter_;
   ++frames_since_last_break_;
 
-  // TODO address whether this is wrong
-  // Update total variance image (since last shot break)
+  // TODO see if this makes sense to keep
+  // TODO I don't understand why functions like this
+  // Update total variance image, since last shot break
   vil_math_image_sum( pixel_variance, summed_variance_, summed_variance_ );
 
   const double scale_factor = options_.variance_scale_factor_ /
                         frames_since_last_break_;
   const double max_input_value = std::numeric_limits< FeatureType >::max() /
                            scale_factor;
+  // TODO consider replacing with a VIL function
   scale_float_img_to_interval( summed_variance_, normalized_variance_,
                                scale_factor, max_input_value );
 
@@ -301,28 +708,13 @@ scene_obstruction_post_processor::priv
   vil_image_view< double > statics = vil_plane( output_image, 0 );
   vil_image_view< double > everything = vil_plane( output_image, 1 );
 
-  // Optional debug feature output
-  if( options_.output_feature_image_mode_ )
-  {
-    this->output_feature_images( full_feature_array );
-  }
-
-  // If in training mode, extract feature data
-  if( options_.is_training_mode_ )
-  {
-    // TODO What is getting written here?
-    this->training_data_extractor_->step( full_feature_array );
-    return;
-  }
-
   // Generate initial per-pixel mask classification
   this->perform_initial_approximation( full_feature_array,
-                                       input_border,
                                        output_image );
+  // Really everything up to here is just computing the response
 
   // Estimate mask properties
   bool break_detected = this->estimate_mask_properties( input_image,
-                                                        input_border,
                                                         output_image );
 
   // Guess what color the mask is, under the assumption its a solid color
@@ -337,21 +729,9 @@ scene_obstruction_post_processor::priv
     if( reclassify )
     {
       this->perform_initial_approximation( full_feature_array,
-                                           input_border,
                                            output_image );
     }
   }
-
-  // Output weighted classification image for each feature
-  if( options_.output_classifier_image_mode_ )
-  {
-    this->output_classifier_images( full_feature_array,
-                                    input_border,
-                                    output_image );
-  }
-
-  // Set output properties
-  output_properties = props_;
 }
 
 // ----------------------------------------------------------------------------
