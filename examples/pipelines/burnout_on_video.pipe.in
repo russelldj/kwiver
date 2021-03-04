@@ -43,12 +43,33 @@ process classifier
   filter:vxl_hashed_image_classifier_filter:model_file = @EXAMPLE_DIR@/models/default_burnout_600_iters
 
 # ================================================================
+process averager
+  ::image_filter
+  filter:type                           = vxl_average
+  filter:vxl_average:type               = sum
+
+# ================================================================
 process thresholder
   ::image_filter
   filter:type                           = vxl_threshold
   filter:vxl_threshold:type             = percentile
   filter:vxl_threshold:threshold        = 0.95
 
+# ================================================================
+process closer
+  ::image_filter
+  filter:type                           = vxl_morphology
+  filter:vxl_morphology:morphology      = close
+  filter:vxl_morphology:kernel_radius   = 2.0
+
+# ================================================================
+process dilater
+  ::image_filter
+  filter:type                           = vxl_morphology
+  filter:vxl_morphology:morphology      = dilate
+  filter:vxl_morphology:kernel_radius   = 2.0
+
+# ================================================================
 process converter
   ::image_filter
   filter:type                           = vxl_convert_image
@@ -60,7 +81,8 @@ process writer
   :: image_writer
   image_writer:type                     = vxl
   file_name_template                    = output/image%06d.png
-
+  image_writer:vxl:force_byte           = true
+  image_writer:vxl:auto_stretch         = true
 
 # connections
 connect from input.image
@@ -70,9 +92,18 @@ connect from filter.image
         to   classifier.image
 
 connect from classifier.image
-        to thresholder.image
+        to averager.image
+
+connect from averager.image
+        to   thresholder.image
 
 connect from thresholder.image
+        to   closer.image
+
+connect from closer.image
+        to   dilater.image
+
+connect from dilater.image
         to   converter.image
 
 connect from converter.image
