@@ -52,8 +52,8 @@ process averager
 process thresholder
   ::image_filter
   filter:type                           = vxl_threshold
-  filter:vxl_threshold:type             = percentile
-  filter:vxl_threshold:threshold        = 0.95
+  filter:vxl_threshold:type             = absolute
+  filter:vxl_threshold:threshold        = -0.037
 
 # ================================================================
 process closer
