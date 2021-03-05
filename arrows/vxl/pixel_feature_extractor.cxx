@@ -7,6 +7,7 @@
 #include "aligned_edge_detection.h"
 #include "average_frames.h"
 #include "color_commonality_filter.h"
+#include "convert_image.h"
 #include "high_pass_filter.h"
 
 #include <arrows/vxl/image_container.h>
@@ -60,6 +61,8 @@ public:
     std::make_shared< vxl::aligned_edge_detection >();
   std::shared_ptr< vxl::average_frames > average_frames_filter =
     std::make_shared< vxl::average_frames >();
+  std::shared_ptr< vxl::convert_image > convert_filter =
+    std::make_shared< vxl::convert_image >();
   std::shared_ptr< vxl::color_commonality_filter > color_commonality_filter =
     std::make_shared< vxl::color_commonality_filter >();
   std::shared_ptr< vxl::high_pass_filter > high_pass_bidir_filter =
@@ -71,6 +74,7 @@ public:
             std::shared_ptr< vital::algo::image_filter > > filters{
     std::make_pair( "aligned_edge", aligned_edge_detection_filter ),
     std::make_pair( "average", average_frames_filter ),
+    std::make_pair( "convert", convert_filter ),
     std::make_pair( "color_commonality", color_commonality_filter ),
     std::make_pair( "high_pass_bidir", high_pass_bidir_filter ),
     std::make_pair( "high_pass_box", high_pass_box_filter ) };
@@ -201,8 +205,9 @@ pixel_feature_extractor::priv
   // TODO consider naming this variance since that option is used more
   if( enable_average )
   {
-    // 3 channels
-    auto averaged = average_frames_filter->filter( input_image );
+    // 1 channel
+    auto grayscale = convert_filter->filter( input_image );
+    auto averaged = average_frames_filter->filter( grayscale );
     filtered_images.push_back(
         vxl::image_container::vital_to_vxl( averaged->get_image() ) );
   }
@@ -299,6 +304,11 @@ pixel_feature_extractor
     config->subblock_view( "high_pass_box" ) );
   d->high_pass_bidir_filter->set_configuration(
     config->subblock_view( "high_pass_bidir" ) );
+
+  // This is only used internally and isn't externally configurable
+  vital::config_block_sptr convert_config = algorithm::get_configuration();
+  convert_config->set_value( "single_channel", true );
+  d->convert_filter->set_configuration( convert_config );
 }
 
 // ----------------------------------------------------------------------------
@@ -328,6 +338,7 @@ pixel_feature_extractor
 
   return d->check_sub_algorithm( config, "aligned_edge" ) &&
          d->check_sub_algorithm( config, "average" ) &&
+         d->check_sub_algorithm( config, "convert" ) &&
          d->check_sub_algorithm( config, "color_commonality" ) &&
          d->check_sub_algorithm( config, "high_pass_box" ) &&
          d->check_sub_algorithm( config, "high_pass_bidir" );
