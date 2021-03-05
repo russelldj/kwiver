@@ -338,7 +338,6 @@ pixel_feature_extractor
 
   return d->check_sub_algorithm( config, "aligned_edge" ) &&
          d->check_sub_algorithm( config, "average" ) &&
-         d->check_sub_algorithm( config, "convert" ) &&
          d->check_sub_algorithm( config, "color_commonality" ) &&
          d->check_sub_algorithm( config, "high_pass_box" ) &&
          d->check_sub_algorithm( config, "high_pass_bidir" );
