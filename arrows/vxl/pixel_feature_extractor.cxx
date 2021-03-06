@@ -41,7 +41,7 @@ public:
   bool check_sub_algorithm( vital::config_block_sptr config, std::string key );
   // Copy multiple filtered images into contigious memory
   template < typename pix_t > vil_image_view< pix_t >
-  concatenate_images( std::vector< vil_image_view_base_sptr > filtered_images );
+  concatenate_images( std::vector< vil_image_view< pix_t > > filtered_images );
   // Extract local pixel-wise features
   template < typename response_t > vil_image_view< response_t >
   filter( kwiver::vital::image_container_sptr input_image );
@@ -106,14 +106,14 @@ pixel_feature_extractor::priv
 template < typename pix_t >
 vil_image_view< pix_t >
 pixel_feature_extractor::priv
-::concatenate_images( std::vector< vil_image_view_base_sptr > filtered_images )
+::concatenate_images( std::vector< vil_image_view< pix_t > > filtered_images )
 {
   // Count the total number of planes
   unsigned total_planes{ 0 };
 
   for( auto const& image : filtered_images )
   {
-    total_planes += image->nplanes();
+    total_planes += image.nplanes();
   }
 
   if( total_planes == 0 )
@@ -122,27 +122,15 @@ pixel_feature_extractor::priv
     return {};
   }
 
-  auto const ni = filtered_images.at( 0 )->ni();
-  auto const nj = filtered_images.at( 0 )->nj();
+  auto const ni = filtered_images.at( 0 ).ni();
+  auto const nj = filtered_images.at( 0 ).nj();
   vil_image_view< pix_t > concatenated_planes{ ni, nj, total_planes };
 
   // Concatenate the filtered images into a single output
   unsigned current_plane{ 0 };
 
-  for( auto const& filtered_image_ptr : filtered_images )
+  for( auto const& filtered_image : filtered_images )
   {
-    vil_image_view< pix_t > filtered_image;
-    if( filtered_image_ptr->pixel_format() ==
-        concatenated_planes.pixel_format() )
-    {
-      filtered_image = filtered_image_ptr;
-    }
-    else
-    {
-      // Cast the image pointer into the concrete type we want
-      filtered_image = vil_convert_cast( pix_t(), filtered_image_ptr );
-    }
-
     for( unsigned i{ 0 }; i < filtered_image.nplanes(); ++i )
     {
       auto output_plane = vil_plane( concatenated_planes, current_plane );
@@ -157,15 +145,25 @@ pixel_feature_extractor::priv
 // ----------------------------------------------------------------------------
 template < typename pix_t >
 vil_image_view< pix_t >
+convert_to_typed_vil_image_view( kwiver::vital::image_container_sptr input_image )
+{
+  auto vxl_image_ptr = vxl::image_container::vital_to_vxl( input_image->get_image() );
+  auto concrete_image = vil_convert_cast( pix_t(), vxl_image_ptr );
+  return concrete_image;
+}
+
+// ----------------------------------------------------------------------------
+template < typename pix_t >
+vil_image_view< pix_t >
 pixel_feature_extractor::priv
 ::filter( kwiver::vital::image_container_sptr input_image )
 {
-  std::vector< vil_image_view_base_sptr > filtered_images;
+  std::vector< vil_image_view< pix_t > > filtered_images;
 
   if( enable_color || enable_gray )
   {
-    const auto vxl_image = vxl::image_container::vital_to_vxl(
-      input_image->get_image() );
+    const auto vxl_image =
+      convert_to_typed_vil_image_view< vxl_byte >( input_image );
 
     // 3 channels
     if( enable_color )
@@ -177,46 +175,52 @@ pixel_feature_extractor::priv
     if( enable_gray )
     {
       // TODO consider vil_convert_to_grey_using_rgb_weighting
-      filtered_images.push_back( vil_convert_to_grey_using_average( vxl_image ) );
+      auto vxl_gray_sptr =
+        vil_convert_to_grey_using_average(
+          vxl::image_container::vital_to_vxl( input_image->get_image() ) );
+      auto vxl_gray = vil_convert_cast( pix_t(), vxl_gray_sptr ) ;
+      filtered_images.push_back( vxl_gray );
     }
   }
 
   if( enable_color_commonality )
   {
     // 1 channel
-    auto color_commonality = color_commonality_filter->filter( input_image );
-    filtered_images.push_back(
-        vxl::image_container::vital_to_vxl( color_commonality->get_image() ) );
+    auto color_commonality = convert_to_typed_vil_image_view< vxl_byte >(
+     color_commonality_filter->filter( input_image ) );
+
+    filtered_images.push_back( color_commonality );
   }
   if( enable_high_pass_box )
   {
-    auto high_pass_box = high_pass_box_filter->filter( input_image );
-    // 2 channels
-    filtered_images.push_back(
-        vxl::image_container::vital_to_vxl( high_pass_box->get_image() ) );
+    auto high_pass_box = convert_to_typed_vil_image_view< vxl_byte >(
+      high_pass_box_filter->filter( input_image ) );
+    // 3 channels
+    filtered_images.push_back( high_pass_box );
   }
   if( enable_high_pass_bidir )
   {
-    auto high_pass_bidir = high_pass_bidir_filter->filter( input_image );
-    // 2 channels
-    filtered_images.push_back(
-        vxl::image_container::vital_to_vxl( high_pass_bidir->get_image() ) );
+    auto high_pass_bidir = convert_to_typed_vil_image_view< vxl_byte >(
+      high_pass_bidir_filter->filter( input_image ) );
+    // 3 channels
+    filtered_images.push_back( high_pass_bidir );
   }
   // TODO consider naming this variance since that option is used more
   if( enable_average )
   {
     // 1 channel
     auto grayscale = convert_filter->filter( input_image );
-    auto averaged = average_frames_filter->filter( grayscale );
-    filtered_images.push_back(
-        vxl::image_container::vital_to_vxl( averaged->get_image() ) );
+    auto averaged = convert_to_typed_vil_image_view< vxl_byte >(
+      average_frames_filter->filter( grayscale ) );
+
+    filtered_images.push_back( averaged );
   }
   if( enable_aligned_edge )
   {
-    auto aligned_edge = aligned_edge_detection_filter->filter( input_image );
-    // 2 channels
-    filtered_images.push_back(
-        vxl::image_container::vital_to_vxl( aligned_edge->get_image() ) );
+    auto aligned_edge = convert_to_typed_vil_image_view< vxl_byte >(
+     aligned_edge_detection_filter->filter( input_image ) );
+    // 3 channels
+    filtered_images.push_back( aligned_edge );
   }
 
   vil_image_view< vxl_byte > concatenated_out =
