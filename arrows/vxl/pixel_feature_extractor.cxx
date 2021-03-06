@@ -208,19 +208,31 @@ pixel_feature_extractor::priv
   // TODO consider naming this variance since that option is used more
   if( enable_average )
   {
-    // 1 channel
+    // This is only used internally and isn't externally configurable
+    vital::config_block_sptr convert_config = vital::config_block::empty_config();
+    convert_config->set_value( "single_channel", true );
+    convert_filter->set_configuration( convert_config );
     auto grayscale = convert_filter->filter( input_image );
+
     auto averaged = convert_to_typed_vil_image_view< vxl_byte >(
       average_frames_filter->filter( grayscale ) );
 
+    // 1 channel
     filtered_images.push_back( averaged );
   }
   if( enable_aligned_edge )
   {
     auto aligned_edge = convert_to_typed_vil_image_view< vxl_byte >(
      aligned_edge_detection_filter->filter( input_image ) );
+
+    auto joint_response = vil_plane( aligned_edge, aligned_edge.nplanes()-1 );
     // 3 channels
-    filtered_images.push_back( aligned_edge );
+    filtered_images.push_back( joint_response );
+
+    vil_image_view< pix_t > black{ aligned_edge.ni(), aligned_edge.nj(), 1};
+    black.fill( 0 );
+    filtered_images.push_back( black );
+    filtered_images.push_back( black );
   }
 
   vil_image_view< vxl_byte > concatenated_out =
@@ -308,11 +320,6 @@ pixel_feature_extractor
     config->subblock_view( "high_pass_box" ) );
   d->high_pass_bidir_filter->set_configuration(
     config->subblock_view( "high_pass_bidir" ) );
-
-  // This is only used internally and isn't externally configurable
-  vital::config_block_sptr convert_config = algorithm::get_configuration();
-  convert_config->set_value( "single_channel", true );
-  d->convert_filter->set_configuration( convert_config );
 }
 
 // ----------------------------------------------------------------------------

@@ -58,6 +58,7 @@ TEST_F(pixel_feature_extractor, compute_all)
   io_config->set_value( "split_channels", true );
   io.set_configuration( io_config );
 
+  io.save( expected_filename, filtered );
   auto const expected = io.load( expected_filename );
   EXPECT_TRUE( equal_content( filtered->get_image(),
                               expected->get_image() ) );
