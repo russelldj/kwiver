@@ -55,8 +55,8 @@ hashed_image_classifier< FeatureType, OutputType >
 
   if( num_features != feature_count() )
   {
-    LOG_ERROR( logger, "Feature counts don't match, features: "
-               << num_features << ", feature_count(): " << feature_count() );
+    LOG_ERROR( logger, "Feature counts don't match, input features: "
+               << num_features << ", model features: " << feature_count() );
   }
 
   if( num_features == 0 )

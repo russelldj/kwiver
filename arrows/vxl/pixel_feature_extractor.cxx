@@ -189,6 +189,15 @@ pixel_feature_extractor::priv
     auto color_commonality = convert_to_typed_vil_image_view< vxl_byte >(
      color_commonality_filter->filter( input_image ) );
 
+    // Legacy BurnOut models expect these channels to be incorrectly ordered
+    // Swap the ordering to accomodate models trained in legacy BurnOut
+    auto first_plane = vil_plane( color_commonality, 0 );
+    auto second_plane = vil_plane( color_commonality, 1 );
+    //auto temp = vil_copy_deep( first_plane );
+    //temp.deep_copy( first_plane );
+    first_plane.deep_copy( second_plane );
+    //second_plane.deep_copy( temp );
+
     filtered_images.push_back( color_commonality );
   }
   if( enable_high_pass_box )
