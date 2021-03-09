@@ -39,6 +39,9 @@ public:
 
   // Check the configuration of the sub algoirthms
   bool check_sub_algorithm( vital::config_block_sptr config, std::string key );
+  // Generate the spatial encoding image
+  template< typename pix_t > vil_image_view< pix_t >
+  generate_spatial_prior( kwiver::vital::image_container_sptr input_image );
   // Copy multiple filtered images into contigious memory
   template < typename pix_t > vil_image_view< pix_t >
   concatenate_images( std::vector< vil_image_view< pix_t > > filtered_images );
@@ -48,6 +51,8 @@ public:
 
   pixel_feature_extractor* p;
 
+  unsigned frame_number{ 0 };
+
   bool enable_color{ true };
   bool enable_gray{ true };
   bool enable_aligned_edge{ true };
@@ -55,6 +60,11 @@ public:
   bool enable_color_commonality{ true };
   bool enable_high_pass_bidir{ true };
   bool enable_high_pass_box{ true };
+  bool enable_normalized_variance{ true };
+  bool enable_spatial_prior{ true };
+
+  float variance_scale_factor{ 0.32 };
+  unsigned grid_length{ 5 };
 
   std::shared_ptr< vxl::aligned_edge_detection >
   aligned_edge_detection_filter =
@@ -100,6 +110,29 @@ pixel_feature_extractor::priv
     return false;
   }
   return true;
+}
+
+// ----------------------------------------------------------------------------
+template< typename pix_t >
+vil_image_view< pix_t >
+pixel_feature_extractor::priv
+::generate_spatial_prior( kwiver::vital::image_container_sptr input_image )
+{
+  auto image_data =
+    vxl::image_container::vital_to_vxl( input_image->get_image() );
+  vil_image_view< pix_t > spatial_prior{ image_data->ni(),
+                                         image_data->nj(), 1 };
+
+  for( unsigned i = 0; i < image_data->ni(); i++ )
+  {
+    auto i_id = static_cast< pix_t >( ( grid_length * i ) / image_data->ni() );
+    for( unsigned j = 0; j < image_data->nj(); j++ )
+    {
+      auto j_id = static_cast< pix_t >( ( grid_length * j ) / image_data->nj() );
+      spatial_prior( i, j ) = grid_length * j_id + i_id;
+    }
+  }
+  return spatial_prior;
 }
 
 // ----------------------------------------------------------------------------
@@ -158,12 +191,14 @@ vil_image_view< pix_t >
 pixel_feature_extractor::priv
 ::filter( kwiver::vital::image_container_sptr input_image )
 {
+  ++frame_number;
+
   std::vector< vil_image_view< pix_t > > filtered_images;
 
   if( enable_color || enable_gray )
   {
     const auto vxl_image =
-      convert_to_typed_vil_image_view< vxl_byte >( input_image );
+      convert_to_typed_vil_image_view< pix_t >( input_image );
 
     // 3 channels
     if( enable_color )
@@ -186,36 +221,38 @@ pixel_feature_extractor::priv
   if( enable_color_commonality )
   {
     // 1 channel
-    auto color_commonality = convert_to_typed_vil_image_view< vxl_byte >(
+    auto color_commonality = convert_to_typed_vil_image_view< pix_t >(
      color_commonality_filter->filter( input_image ) );
-
-    // Legacy BurnOut models expect these channels to be incorrectly ordered
-    // Swap the ordering to accomodate models trained in legacy BurnOut
-    auto first_plane = vil_plane( color_commonality, 0 );
-    auto second_plane = vil_plane( color_commonality, 1 );
-    //auto temp = vil_copy_deep( first_plane );
-    //temp.deep_copy( first_plane );
-    first_plane.deep_copy( second_plane );
-    //second_plane.deep_copy( temp );
 
     filtered_images.push_back( color_commonality );
   }
   if( enable_high_pass_box )
   {
-    auto high_pass_box = convert_to_typed_vil_image_view< vxl_byte >(
+    auto high_pass_box = convert_to_typed_vil_image_view< pix_t >(
       high_pass_box_filter->filter( input_image ) );
+
+    // Legacy BurnOut models expect these channels to be incorrectly ordered
+    // Swap the ordering to accomodate models trained in legacy BurnOut
+    auto first_plane = vil_plane( high_pass_box, 0 );
+    auto second_plane = vil_plane( high_pass_box, 1 );
+    auto temp = vil_copy_deep( first_plane );
+    temp.deep_copy( first_plane );
+    first_plane.deep_copy( second_plane );
+    second_plane.deep_copy( temp );
+
     // 3 channels
     filtered_images.push_back( high_pass_box );
   }
   if( enable_high_pass_bidir )
   {
-    auto high_pass_bidir = convert_to_typed_vil_image_view< vxl_byte >(
+    auto high_pass_bidir = convert_to_typed_vil_image_view< pix_t >(
       high_pass_bidir_filter->filter( input_image ) );
     // 3 channels
     filtered_images.push_back( high_pass_bidir );
   }
-  // TODO consider naming this variance since that option is used more
-  if( enable_average )
+
+  vil_image_view< pix_t > variance;
+  if( enable_average || enable_normalized_variance )
   {
     // This is only used internally and isn't externally configurable
     vital::config_block_sptr convert_config = vital::config_block::empty_config();
@@ -223,29 +260,40 @@ pixel_feature_extractor::priv
     convert_filter->set_configuration( convert_config );
     auto grayscale = convert_filter->filter( input_image );
 
-    auto averaged = convert_to_typed_vil_image_view< vxl_byte >(
+    variance = convert_to_typed_vil_image_view< pix_t >(
       average_frames_filter->filter( grayscale ) );
+  }
 
+  // TODO consider naming this variance since that option is used more
+  if( enable_average )
+  {
     // 1 channel
-    filtered_images.push_back( averaged );
+    filtered_images.push_back( variance );
   }
   if( enable_aligned_edge )
   {
-    auto aligned_edge = convert_to_typed_vil_image_view< vxl_byte >(
-     aligned_edge_detection_filter->filter( input_image ) );
+    auto aligned_edge = convert_to_typed_vil_image_view< pix_t >(
+      aligned_edge_detection_filter->filter( input_image ) );
 
     auto joint_response = vil_plane( aligned_edge, aligned_edge.nplanes()-1 );
     // 3 channels
     filtered_images.push_back( joint_response );
 
-    vil_image_view< pix_t > black{ aligned_edge.ni(), aligned_edge.nj(), 1};
-    black.fill( 0 );
-    filtered_images.push_back( black );
-    filtered_images.push_back( black );
+  }
+  if( enable_normalized_variance )
+  {
+    double scale_factor = variance_scale_factor / frame_number;
+    vil_math_scale_values( variance, scale_factor );
+    filtered_images.push_back( variance );
+  }
+  if( enable_spatial_prior )
+  {
+    auto spatial_prior = generate_spatial_prior< pix_t >( input_image );
+    filtered_images.push_back( spatial_prior );
   }
 
-  vil_image_view< vxl_byte > concatenated_out =
-    concatenate_images< vxl_byte >( filtered_images );
+  vil_image_view< pix_t > concatenated_out =
+    concatenate_images< pix_t >( filtered_images );
 
   return concatenated_out;
 }
@@ -293,6 +341,17 @@ pixel_feature_extractor
   config->set_value( "enable_high_pass_bidir",
                      d->enable_high_pass_bidir,
                      "Enable high_pass_filter filter." );
+  config->set_value( "enable_normalized_variance",
+                     d->enable_normalized_variance,
+                     "Enable the normalized variance since the last shot break. "
+                     "This will be a scalar multiple with the normal variance until "
+                     "shot breaks are implemented." );
+  config->set_value( "enable_spatial_prior",
+                      d->enable_spatial_prior,
+                      "Enable an image which encodes the location" );
+  config->set_value( "variance_scale_factor",
+                     d->variance_scale_factor,
+                     "The multiplicative value for the normalized varaince" );
   return config;
 }
 
@@ -317,6 +376,13 @@ pixel_feature_extractor
     config->get_value< bool >( "enable_high_pass_box" );
   d->enable_high_pass_bidir =
     config->get_value< bool >( "enable_high_pass_bidir" );
+  d->enable_normalized_variance =
+    config->get_value< bool >( "enable_normalized_variance" );
+  d->enable_spatial_prior =
+    config->get_value< bool >( "enable_spatial_prior" );
+
+  d->variance_scale_factor =
+    config->get_value< float >( "variance_scale_factor" );
 
   // Configure the individual filter algorithms
   d->aligned_edge_detection_filter->set_configuration(
@@ -347,10 +413,15 @@ pixel_feature_extractor
     config->get_value< bool >( "enable_high_pass_box" );
   auto enable_high_pass_bidir =
     config->get_value< bool >( "enable_high_pass_bidir" );
+  auto enable_normalized_variance =
+    config->get_value< bool >( "enable_normalized_variance" );
+  auto enable_spatial_prior =
+    config->get_value< bool >( "enable_spatial_prior" );
 
   if( !( enable_color || enable_gray || enable_aligned_edge ||
          enable_average || enable_color_commonality || enable_high_pass_box ||
-         enable_high_pass_bidir ) )
+         enable_high_pass_bidir || enable_normalized_variance ||
+         enable_spatial_prior ) )
   {
     LOG_ERROR( logger(), "At least one filter must be enabled" );
     return false;
