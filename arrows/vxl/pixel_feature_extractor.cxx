@@ -33,6 +33,7 @@ namespace vxl {
 class pixel_feature_extractor::priv
 {
 public:
+
   priv( pixel_feature_extractor* parent ) : p{ parent }
   {
   }
@@ -130,14 +131,18 @@ pixel_feature_extractor::priv
   spatial_prior = vil_image_view< vxl_byte >( image_data->ni(),
                                               image_data->nj(), 1 );
 
-  double scale_factor = static_cast< double >( std::numeric_limits< vxl_byte >::max() ) / ( grid_length * grid_length - 1 );
+  double scale_factor =
+    static_cast< double >( std::numeric_limits< vxl_byte >::max() ) /
+    ( grid_length * grid_length - 1 );
 
   for( unsigned i = 0; i < image_data->ni(); i++ )
   {
-    auto i_id = static_cast< vxl_byte >( ( grid_length * i ) / image_data->ni() );
+    auto i_id =
+      static_cast< vxl_byte >( ( grid_length * i ) / image_data->ni() );
     for( unsigned j = 0; j < image_data->nj(); j++ )
     {
-      auto j_id = static_cast< vxl_byte >( ( grid_length * j ) / image_data->nj() );
+      auto j_id =
+        static_cast< vxl_byte >( ( grid_length * j ) / image_data->nj() );
       auto index = grid_length * j_id + i_id;
       spatial_prior( i, j ) = static_cast< vxl_byte >( index * scale_factor );
     }
@@ -188,9 +193,11 @@ pixel_feature_extractor::priv
 // ----------------------------------------------------------------------------
 template < typename pix_t >
 vil_image_view< pix_t >
-convert_to_typed_vil_image_view( kwiver::vital::image_container_sptr input_image )
+convert_to_typed_vil_image_view(
+  kwiver::vital::image_container_sptr input_image )
 {
-  auto vxl_image_ptr = vxl::image_container::vital_to_vxl( input_image->get_image() );
+  auto vxl_image_ptr = vxl::image_container::vital_to_vxl(
+    input_image->get_image() );
   auto concrete_image = vil_convert_cast( pix_t(), vxl_image_ptr );
   return concrete_image;
 }
@@ -223,7 +230,7 @@ pixel_feature_extractor::priv
       auto vxl_gray_sptr =
         vil_convert_to_grey_using_average(
           vxl::image_container::vital_to_vxl( input_image->get_image() ) );
-      auto vxl_gray = vil_convert_cast( pix_t(), vxl_gray_sptr ) ;
+      auto vxl_gray = vil_convert_cast( pix_t(), vxl_gray_sptr );
       filtered_images.push_back( vxl_gray );
     }
   }
@@ -232,7 +239,7 @@ pixel_feature_extractor::priv
   {
     // 1 channel
     auto color_commonality = convert_to_typed_vil_image_view< pix_t >(
-     color_commonality_filter->filter( input_image ) );
+      color_commonality_filter->filter( input_image ) );
 
     filtered_images.push_back( color_commonality );
   }
@@ -262,12 +269,15 @@ pixel_feature_extractor::priv
   }
 
   kwiver::vital::image_container_sptr variance_container;
+
   if( enable_average || enable_normalized_variance )
   {
     // This is only used internally and isn't externally configurable
-    vital::config_block_sptr convert_config = vital::config_block::empty_config();
+    vital::config_block_sptr convert_config =
+      vital::config_block::empty_config();
     convert_config->set_value( "single_channel", true );
     convert_filter->set_configuration( convert_config );
+
     auto grayscale = convert_filter->filter( input_image );
     variance_container = average_frames_filter->filter( grayscale );
   }
@@ -275,7 +285,8 @@ pixel_feature_extractor::priv
   // TODO consider naming this variance since that option is used more
   if( enable_average )
   {
-    auto variance = convert_to_typed_vil_image_view< pix_t >( variance_container );
+    auto variance = convert_to_typed_vil_image_view< pix_t >(
+      variance_container );
     // 1 channel
     filtered_images.push_back( variance );
   }
@@ -284,19 +295,21 @@ pixel_feature_extractor::priv
     auto aligned_edge = convert_to_typed_vil_image_view< pix_t >(
       aligned_edge_detection_filter->filter( input_image ) );
 
-    auto joint_response = vil_plane( aligned_edge, aligned_edge.nplanes()-1 );
+    auto joint_response =
+      vil_plane( aligned_edge, aligned_edge.nplanes() - 1 );
     // 3 channels
     filtered_images.push_back( joint_response );
-
   }
   if( enable_normalized_variance )
   {
-    // Since varaince is a double and may be small, avoid premptively casting to a byte
+    // Since varaince is a double and may be small, avoid premptively casting
+    // to a byte
     auto double_variance =
       convert_to_typed_vil_image_view< double >( variance_container );
     auto scale_factor =
       variance_scale_factor / static_cast< float >( frame_number );
     vil_math_scale_values( double_variance, scale_factor );
+
     vil_image_view< pix_t > variance;
     vil_convert_cast( double_variance, variance );
     filtered_images.push_back( variance );
@@ -362,8 +375,8 @@ pixel_feature_extractor
                      "This will be a scalar multiple with the normal variance until "
                      "shot breaks are implemented." );
   config->set_value( "enable_spatial_prior",
-                      d->enable_spatial_prior,
-                      "Enable an image which encodes the location" );
+                     d->enable_spatial_prior,
+                     "Enable an image which encodes the location" );
   config->set_value( "variance_scale_factor",
                      d->variance_scale_factor,
                      "The multiplicative value for the normalized varaince" );
