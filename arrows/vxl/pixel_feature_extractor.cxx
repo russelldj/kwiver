@@ -191,14 +191,57 @@ pixel_feature_extractor::priv
 }
 
 // ----------------------------------------------------------------------------
+// Convert to a narrower type without wrapping
+template < typename out_t, typename in_t >
+vil_image_view< out_t >
+safe_narrowing_cast( vil_image_view< in_t > input_image )
+{
+  auto const ni = input_image.ni();
+  auto const nj = input_image.nj();
+  auto const np = input_image.nplanes();
+  vil_image_view< out_t > output_image{ ni, nj, np };
+
+  constexpr out_t max_output_value = std::numeric_limits< out_t >::max();
+  constexpr out_t min_output_value = std::numeric_limits< out_t >::min();
+
+  vil_transform(
+    input_image, output_image,
+    [=]( in_t pixel ){
+      if( pixel < min_output_value )
+      {
+        return min_output_value;
+      }
+      else if( pixel > max_output_value )
+      {
+        return max_output_value;
+      }
+      else
+      {
+        return static_cast< out_t >( pixel );
+      }
+    } );
+  return output_image;
+}
+
+// ----------------------------------------------------------------------------
 template < typename pix_t >
 vil_image_view< pix_t >
 convert_to_typed_vil_image_view(
-  kwiver::vital::image_container_sptr input_image )
+  kwiver::vital::image_container_sptr input_image,
+  bool input_has_larger_range = false )
 {
   auto vxl_image_ptr = vxl::image_container::vital_to_vxl(
     input_image->get_image() );
-  auto concrete_image = vil_convert_cast( pix_t(), vxl_image_ptr );
+
+  if( !input_has_larger_range )
+  {
+    auto concrete_image = vil_convert_cast( pix_t(), vxl_image_ptr );
+    return concrete_image;
+  }
+
+  auto double_image = static_cast< vil_image_view< double > >(
+    vil_convert_cast( double(), vxl_image_ptr ) );
+  auto concrete_image = safe_narrowing_cast< pix_t >( double_image );
   return concrete_image;
 }
 
@@ -286,7 +329,7 @@ pixel_feature_extractor::priv
   if( enable_average )
   {
     auto variance = convert_to_typed_vil_image_view< pix_t >(
-      variance_container );
+      variance_container, true );
     // 1 channel
     filtered_images.push_back( variance );
   }
@@ -297,7 +340,7 @@ pixel_feature_extractor::priv
 
     auto joint_response =
       vil_plane( aligned_edge, aligned_edge.nplanes() - 1 );
-    // 3 channels
+    // 1 channel
     filtered_images.push_back( joint_response );
   }
   if( enable_normalized_variance )
@@ -310,13 +353,14 @@ pixel_feature_extractor::priv
       variance_scale_factor / static_cast< float >( frame_number );
     vil_math_scale_values( double_variance, scale_factor );
 
-    vil_image_view< pix_t > variance;
-    vil_convert_cast( double_variance, variance );
+    auto variance = safe_narrowing_cast< pix_t >( double_variance );
+    // 1 channel
     filtered_images.push_back( variance );
   }
   if( enable_spatial_prior )
   {
     auto spatial_prior = generate_spatial_prior( input_image );
+    // 1 channel
     filtered_images.push_back( spatial_prior );
   }
 
