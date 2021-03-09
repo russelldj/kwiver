@@ -40,7 +40,7 @@ public:
   // Check the configuration of the sub algoirthms
   bool check_sub_algorithm( vital::config_block_sptr config, std::string key );
   // Generate the spatial encoding image
-  template< typename pix_t > vil_image_view< pix_t >
+  vil_image_view< vxl_byte >
   generate_spatial_prior( kwiver::vital::image_container_sptr input_image );
   // Copy multiple filtered images into contigious memory
   template < typename pix_t > vil_image_view< pix_t >
@@ -52,6 +52,7 @@ public:
   pixel_feature_extractor* p;
 
   unsigned frame_number{ 0 };
+  vil_image_view< vxl_byte > spatial_prior;
 
   bool enable_color{ true };
   bool enable_gray{ true };
@@ -113,23 +114,32 @@ pixel_feature_extractor::priv
 }
 
 // ----------------------------------------------------------------------------
-template< typename pix_t >
-vil_image_view< pix_t >
+vil_image_view< vxl_byte >
 pixel_feature_extractor::priv
 ::generate_spatial_prior( kwiver::vital::image_container_sptr input_image )
 {
   auto image_data =
     vxl::image_container::vital_to_vxl( input_image->get_image() );
-  vil_image_view< pix_t > spatial_prior{ image_data->ni(),
-                                         image_data->nj(), 1 };
+  // Return the previously-computed one if the size is the same
+  if( spatial_prior.ni() == image_data->ni() &&
+      spatial_prior.nj() == image_data->nj() )
+  {
+    return spatial_prior;
+  }
+
+  spatial_prior = vil_image_view< vxl_byte >( image_data->ni(),
+                                              image_data->nj(), 1 );
+
+  double scale_factor = static_cast< double >( std::numeric_limits< vxl_byte >::max() ) / ( grid_length * grid_length - 1 );
 
   for( unsigned i = 0; i < image_data->ni(); i++ )
   {
-    auto i_id = static_cast< pix_t >( ( grid_length * i ) / image_data->ni() );
+    auto i_id = static_cast< vxl_byte >( ( grid_length * i ) / image_data->ni() );
     for( unsigned j = 0; j < image_data->nj(); j++ )
     {
-      auto j_id = static_cast< pix_t >( ( grid_length * j ) / image_data->nj() );
-      spatial_prior( i, j ) = grid_length * j_id + i_id;
+      auto j_id = static_cast< vxl_byte >( ( grid_length * j ) / image_data->nj() );
+      auto index = grid_length * j_id + i_id;
+      spatial_prior( i, j ) = static_cast< vxl_byte >( index * scale_factor );
     }
   }
   return spatial_prior;
@@ -251,7 +261,7 @@ pixel_feature_extractor::priv
     filtered_images.push_back( high_pass_bidir );
   }
 
-  vil_image_view< pix_t > variance;
+  kwiver::vital::image_container_sptr variance_container;
   if( enable_average || enable_normalized_variance )
   {
     // This is only used internally and isn't externally configurable
@@ -259,14 +269,13 @@ pixel_feature_extractor::priv
     convert_config->set_value( "single_channel", true );
     convert_filter->set_configuration( convert_config );
     auto grayscale = convert_filter->filter( input_image );
-
-    variance = convert_to_typed_vil_image_view< pix_t >(
-      average_frames_filter->filter( grayscale ) );
+    variance_container = average_frames_filter->filter( grayscale );
   }
 
   // TODO consider naming this variance since that option is used more
   if( enable_average )
   {
+    auto variance = convert_to_typed_vil_image_view< pix_t >( variance_container );
     // 1 channel
     filtered_images.push_back( variance );
   }
@@ -282,13 +291,19 @@ pixel_feature_extractor::priv
   }
   if( enable_normalized_variance )
   {
-    double scale_factor = variance_scale_factor / frame_number;
-    vil_math_scale_values( variance, scale_factor );
+    // Since varaince is a double and may be small, avoid premptively casting to a byte
+    auto double_variance =
+      convert_to_typed_vil_image_view< double >( variance_container );
+    auto scale_factor =
+      variance_scale_factor / static_cast< float >( frame_number );
+    vil_math_scale_values( double_variance, scale_factor );
+    vil_image_view< pix_t > variance;
+    vil_convert_cast( double_variance, variance );
     filtered_images.push_back( variance );
   }
   if( enable_spatial_prior )
   {
-    auto spatial_prior = generate_spatial_prior< pix_t >( input_image );
+    auto spatial_prior = generate_spatial_prior( input_image );
     filtered_images.push_back( spatial_prior );
   }
 
