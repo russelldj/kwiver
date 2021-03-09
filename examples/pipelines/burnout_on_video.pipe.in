@@ -28,8 +28,8 @@ process filter
   filter:vxl_pixel_feature_extractor:high_pass_box:treat_as_interlaced = false
   filter:vxl_pixel_feature_extractor:high_pass_box:output_net_only = false
 
-  filter:vxl_pixel_feature_extractor:high_pass_bidir:kernel_width = 15
-  filter:vxl_pixel_feature_extractor:high_pass_bidir:kernel_height = 15
+  filter:vxl_pixel_feature_extractor:high_pass_bidir:kernel_width = 27
+  filter:vxl_pixel_feature_extractor:high_pass_bidir:kernel_height = 27
   filter:vxl_pixel_feature_extractor:high_pass_bidir:treat_as_interlaced = false
   filter:vxl_pixel_feature_extractor:high_pass_bidir:output_net_only = false
 
@@ -37,13 +37,14 @@ process filter
   filter:vxl_pixel_feature_extractor:color_commonality:output_scale = 255
 
 # ================================================================
-process filtered_writer
-  :: image_writer
-  image_writer:type                     = vxl
-  file_name_template                    = filtered/image%06d.png
-  image_writer:vxl:force_byte           = true
-  image_writer:vxl:auto_stretch         = true
-  image_writer:vxl:split_channels       = true
+# Optionally write out features for debugging
+# process filtered_writer
+#   :: image_writer
+#   image_writer:type                     = vxl
+#   file_name_template                    = filtered/image%06d.png
+#   image_writer:vxl:force_byte           = true
+#   image_writer:vxl:auto_stretch         = true
+#   image_writer:vxl:split_channels       = true
 
 # ================================================================
 process classifier
@@ -61,8 +62,8 @@ process averager
 process thresholder
   ::image_filter
   filter:type                           = vxl_threshold
-  filter:vxl_threshold:type             = percentile
-  filter:vxl_threshold:threshold        = 0.95
+  filter:vxl_threshold:type             = absolute
+  filter:vxl_threshold:threshold        = -0.037
 
 # ================================================================
 process closer
@@ -100,8 +101,9 @@ connect from input.image
 connect from filter.image
         to   classifier.image
 
-connect from filter.image
-        to filtered_writer.image
+# Optionally write out features for debugging
+# connect from filter.image
+#         to filtered_writer.image
 
 connect from classifier.image
         to averager.image
